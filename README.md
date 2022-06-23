@@ -1,3 +1,11 @@
-# Exploratory Data Analysis (EDA) and Feature Engineering (FE): A Practical Guide
+# Data Processing: A Practical Guide
 
-An 80/20 guide for Exploratory Data Analysis and Feature Engineering.
+The steps in the data science pipeline that need to be carried out to answer business questions are:
+
+- Data Cleaning
+- Exploratory Data Analysis
+- Feature Engineering
+- Feature Selection
+- Data Modelling
+
+Unfortunatelly, there is 
