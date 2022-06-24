@@ -70,6 +70,10 @@ For more information on the motivation of the guide, see my [blog post](https://
 
 ## Exploratory Data Analysis
 
+- Correlations:
+	- Heatmap for all numerical variables: `sns.heatmap(df.corr())`.
+	- Bar chart for correlations wrt. target: `df.corr()['target'].sort_values(ascending=True).plot(kind='bar')`.
+	- Check if there is multicolinearity: it's not good.
 
 
 ## Feature Engineering
@@ -97,8 +101,9 @@ For more information on the motivation of the guide, see my [blog post](https://
 
 ## Feature Selection
 
-- `SelectFromModel(Lasso())`
-- Use pairplots to check multi-colineearity; correlated features are not good.
+- We can measure sparsity of information with `PCA()`; if less variables explain most of the variance, we could drop some.
+- Select variables with L1 regularized regression (lasso): `SelectFromModel(Lasso())`.
+- Use pairplots to check multi-colinearity; correlated features are not good.
 
 ## Data Modelling
 

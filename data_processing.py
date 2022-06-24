@@ -300,6 +300,10 @@ joblib.dump(scaler, filepath+'minmax_scaler.joblib')
 ##### -- Feature Selection
 ##### -- 
 
+# Check sparsity with PCA
+
+
+
 # Set and save the seed for reproducibility
 sel_ = SelectFromModel(Lasso(alpha=0.001, random_state=42))
 # Train Lasso model and select features
