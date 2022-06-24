@@ -9,7 +9,9 @@ The steps in the data science pipeline that need to be carried out to answer bus
 5. Feature Selection
 6. Data Modelling
 
-Unfortunatelly, there is 
+The file [data_processing.py](data_processing.py) summarizes 
+
+For more information on the motivation, see my [blog post](https://mikelsagardia.io/blog/data-processing-guide.html).
 
 ### Table of Contents
 
