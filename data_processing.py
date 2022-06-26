@@ -34,6 +34,10 @@ import pandas as pd
 import numpy as np 
 from scipy.stats import stats
 import scipy.stats.distributions as dist
+from scipy.stats import chi2_contingency
+
+from statsmodels.formula.api import ols
+from statsmodels.stats.anova import anova_lm 
 
 import seaborn as sns 
 import matplotlib.pylab as plt
@@ -44,10 +48,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.preprocessing import PowerTransformer
 from sklearn.decomposition import PCA
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.metrics import classification_report, confusion_matrix
 
 # Binary or one-hot encoding with Scikit-Learn
 from sklearn.preprocessing import LabelEncoder, LabelBinarizer, OneHotEncoder
-#from pandas import get_dummies
+# from pandas import get_dummies
 
 # Ordinal encoding with Scikit-Learn; ordinal = there is a ranking order between category levels
 # Beware: we assume distances between categories are as encoded!
@@ -61,6 +69,7 @@ from sklearn.feature_selection import SelectFromModel
 
 # Display all the columns of the dataframe in the notebook
 pd.pandas.set_option('display.max_columns', None)
+
 
 ##### -- 
 ##### -- General, Useful & Important Functions
@@ -203,6 +212,7 @@ today = dt.datetime(2022,6,17)
 for col in dat_cols:
     df[col] = pd.to_datetime(df[col], format='%Y-%m-%d')`# format='%d/%m/%Y', etc. 
     df[col] = df[col].apply(lambda col: int((today-col).days))
+
 
 ##### -- 
 ##### -- Exploratory Data Analysis (EDA)
@@ -424,6 +434,7 @@ X_test = pd.DataFrame(
 # Always save the scaler!
 joblib.dump(scaler, filepath+'minmax_scaler.joblib')
 
+
 ##### -- 
 ##### -- Feature Selection
 ##### -- 
@@ -446,8 +457,6 @@ pca = PCA(n_components=0.95)
 X_reduced = pca.fit_transform(X)
 X_reduced.shape[1]
 
-
-
 # Set and save the seed for reproducibility
 sel_ = SelectFromModel(Lasso(alpha=0.001, random_state=42))
 # Train Lasso model and select features
@@ -457,6 +466,7 @@ selected_features = list(X_train.columns[(sel_.get_support())])
 
 # Save the seleceted features
 joblib.dump(selected_features, filepath+'selected_features.joblib')
+
 
 ##### -- 
 ##### -- Inferences & Hypothesis Testings
@@ -566,8 +576,158 @@ subset1 = df[df[group1] > 0][feature_analyze]
 subset2 = df[df[group2] < 1][feature_analyze]
 (t_stat, p_value, m1, m2) = t_test(subset1, subset2)
 
+## T-Test of independent samples: 2 means
+
+# Charges of smokers are larger for smokers
+smoker = df.loc[df.smoker=="yes"]
+smoker_char = smoker.charges
+nonsmoker = df.loc[df.smoker=="no"]
+nonsmoker_char = nonsmoker.charges
+sns.boxplot(x=df.charges,y=df.smoker,data=data).set(title="Smoker vs Charges")
+
+# Test: T-test, one-sided
+# H0: mean_smoker <= mean_nonsmoker
+# Ha: mean_smoker > mean_nonsmoker
+alpha = 0.05
+t_val, p_value = stats.ttest_ind(smoker_char, nonsmoker_char)
+p_value_onetail = p_value/2 # p_value -> 0 (reject H0)
+
+## One-way ANOVA: >2 means
+
+# BMI of women with no children, one child, and two children
+female = df[df.gender == 'female']
+female_children = female.loc[female['children']<=2]
+sns.boxplot(x="children", y="bmi", data=female_children)
+
+# Test: ANOVA
+# Build OLS model with formula and compute ANOVA table
+# C(): treat as categorical even though it is an integer
+formula = 'bmi ~ C(children)'
+model = ols(formula, female_children).fit()
+aov_table = anova_lm(model)
+aov_table # P(>F) = 0.715858 (cannot reject H0 -> there is no difference between means)
+
+### Chi-square test: >2 proportions & contingency tables
+
+# Is the proportion of smokers is significantly different across the different regions?
+# Create contingency table
+contingency = pd.crosstab(df.region, df.smoker)
+contingency
+
+# Plot as bar chart
+contingency.plot(kind='bar')
+
+# Test: Chi-sqare
+# H0: Smokers proportions are not significantly different across the different regions. 
+# Ha: Smokers proportions are different across the different regions.
+# p_val = 0.06171954839170541 (cannot reject H0)
+chi2, p_val, dof, exp_freq = chi2_contingency(contingency, correction = False)
+print('chi-square statistic: {} , p_value: {} , degree of freedom: {} ,expected frequencies: {} '.format(chi2, p_val, dof, exp_freq))
+
 
 ##### -- 
 ##### -- Data Modelling
 ##### -- 
+
+# Choose and instantiate the model
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
+model = LinearRegression()
+model = Lasso(alpha=0.001, random_state=0)
+model = Ridge(alpha=0.001, random_state=0)
+model.fit(X_train, y_train)
+model.coef_
+# -
+from sklearn.linear_model import LogisticRegression
+model = LogisticRegression()
+# -
+from sklearn.neighbors import KNeighborsClassifier
+model = KNeighborsClassifier(n_neighbors=1) # test in a loop best k = n_neighbors
+# -
+from sklearn.tree import DecisionTreeClassifier
+model = DecisionTreeClassifier()
+# -
+from sklearn.ensemble import RandomForestClassifier
+model = RandomForestClassifier(n_estimators=200)
+# -
+from sklearn.ensemble import RandomForestRegressor
+model = RandomForestRegressor(n_estimators=100, random_state=0)
+model.fit(X_train, y_train)
+model.feature_importances_
+# -
+from sklearn.svm import SVC
+model = SVC()
+# -
+from sklearn.naive_bayes import GaussianNB
+model = GaussianNB()
+# -
+from sklearn.mixture import GaussianMixture
+model = GaussianMixture(n_components=2,covariance_type='diag')
+# -
+from sklearn.mixture import BayesianGaussianMixture
+model = BayesianGaussianMixture(n_components=2,covariance_type='diag')
+# -
+from sklearn.naive_bayes import MultinomialNB
+model = MultinomialNB()
+# -
+from sklearn.cluster import KMeans
+model = KMeans(n_clusters=4)
+model.fit(X)
+model.cluster_centers_
+model.labels_
+# -
+from sklearn.decomposition import PCA
+model = PCA(n_components=2)
+model.fit(X)
+X_reduced = model.transform(X)
+model.components_
+
+# Fit / Train
+# Sometimes, data frames need to be converted to 1D arrays
+model.fit(X_train, y_train)
+model.fit(X_train, np.ravel(y_train))
+
+# Predict 
+pred_train = model.predict(X_train)
+pred_test = model.predict(X_test)
+
+# Evaluate; consider whether the targe was transformed or not
+# If Regression: MSE, R2
+print('MAE: ', mean_absolute_error(np.exp(y_test), np.exp(pred_test)))
+print('RMSE: ', mean_squared_error(np.exp(y_test), np.exp(pred_test), squared=False))
+print('R2', r2_score(np.exp(y_test), np.exp(pred_test)))
+# If Classification: confusion matrix, accuracy, precision, recall, F1
+print(confusion_matrix(y_test,pred_test))
+print(classification_report(y_test,pred_test))
+
+# If Regression: Plot True y vs. Predicted y
+plt.figure(figsize=(8,8))
+y_true = np.exp(y_test)
+y_pred = np.exp(model.predict(X_test))
+plt.scatter(y_true, y_pred,color='b',alpha=0.5)
+plt.plot(np.array([0,np.max(y_true)],dtype='object'),np.array([0,np.max(y_true)],dtype='object'),'r-')
+plt.xlabel('True Target')
+plt.ylabel('Predicted Target')
+plt.axis('equal')
+
+# If Regression: check residuals are normally distributed (QQ plot)
+y_true = np.exp(y_test)
+y_pred = np.exp(model.predict(X_test))
+error = y_true - y_pred
+stats.probplot(error, dist="norm", plot=plt);
+
+# If Regression: Get & plot model coefficients / feature importances
+importance = pd.DataFrame(model.coef_.ravel()) # LinearRegression, Lasso, Ridge
+importance = pd.DataFrame(model.feature_importances_.ravel()) # RandomForestRegressor
+importance.index = df.columns
+importance.columns = ['coef']
+importance['plus'] = importance['coef'].apply(lambda col: 1 if col > 0 else 0)
+importance['coef'] = np.abs(importance['coef'])
+# Plot top k coefficients
+top_features = 30
+plt.figure(figsize=(6,10))
+importance.sort_values(by='coef',ascending=True,inplace=True)
+color_list = ['b' if el > 0 else 'r' for el in [importance['plus'].iloc[i] for i in range(importance['plus'].shape[0])]]
+importance['coef'][-top_features:].plot(kind='barh',color=color_list[-top_features:])
+plt.xlabel('Coefficient Value of Features')
+
 

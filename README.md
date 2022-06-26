@@ -23,6 +23,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 - [Feature Engineering](#Feature-Engineering)
 - [Feature Selection](#Feature-Selection)
 - [Hypothesis Tests](#Hypothesis-Tests)
+- [Data Modelling](#Data-Modelling)
 - [Tips for Production](#Tips-for-Production)
 - [Relevant Links](#Relevant-Links)
 - [Authorship](#Authorship)
@@ -157,24 +158,55 @@ For more information on the motivation of the guide, see my [blog post](https://
 - Select variables with L1 regularized regression (lasso): `SelectFromModel(Lasso())`. L1 regularization forces coefficients of less important variables to become 0; thus, we can remove them.
 - Use pairplots to check multi-colinearity; correlated features are not good.
 
-## Data Modelling
-
-
-
 ## Hypothesis Tests
 
+- Always define `H0`, `Ha` and `alpha` beforehand and keep in mind the errors:
+	- Type I error: you're healthy but the test says you're sick: False positive.
+	- Type II error: your're sick, but the test says you're healthy: False negative.
+	- P(Type I error) = `alpha`, significance level, typically 0.05.
+	- P(Type II error) = `beta`.
+	- Power of a test = 1 - `beta`.
+- Most common hypothesis tests
+	- Two independent proportions: Z Test.
+	- Two independent means: T Test.
+	- One factor with L>2 levels creating L means: One-way ANOVA.
+	- One factor with L>2 levels creating L proportions/frequencies: Chi Square Test with contingency table.
+		- Example contingency table: `[age_group, smoke] = (18-30, 31-50, 51-70, 71-100) x (yes, no)`.
+		- Use `crosstab.
+- Take into account all the assumptions made by each test and the details!
+	- Independent vs. paired groups.
+	- One-sided (>, <) vs 2-sided tests (!=).
+	- Normality assumption: check histograms, QQ plots, run normality test if necessary.
+	- Equal variances assumption.
+	- If assumptions broken, consider equivalent parametric tests.
+	- Post-hoc tests when >2 levels: apply Bonferroni correction if T tests used: `alpha <- alpha / num_tests`.
 
+## Data Modelling
+
+Data modelling is out of the scope of this guide, because the goal is to focus on the data processing and analysis part prior to creating models. However, some basic modelling steps are compiled, since they often provide feedback for new iterations in the data processing.
+
+- Most common approaches to start with tabular data:
+	- Supervised learning:
+		- Regression: `Ridge`, `RandomForestRegressor`.
+		- Classification: `RandomForestClassifier`.
+	- Unsupervised learning:
+		- Clustering: `KMeans`.
+		- Dimensionality reduction: `PCA`.
+- Always evaluate with cross-validation/test split.
+	- Regression: R2, RMSE.
+	- Classification: confusion matrix, accuracy, F1.
+- Plot model parameters to understand what's going on; often it's better than the predictions.
 
 ## Tips for Production
 
-
+TBD.
 
 ## Relevant Links
 
-- [machine_learning_ibm](https://github.com/mxagar/machine_learning_ibm)
-- [statistics_with_python_coursera](https://github.com/mxagar/statistics_with_python_coursera)
-- [deploying-machine-learning-models](https://github.com/mxagar/deploying-machine-learning-models)
-- [airbnb_data_analysis](https://github.com/mxagar/airbnb_data_analysis)
+- My notes on the IBM Machine Learning Professional Certification from Coursera: [machine_learning_ibm](https://github.com/mxagar/machine_learning_ibm).
+- My notes on the Statistics with Python Specialization from Coursera (University of Michigan): [statistics_with_python_coursera](https://github.com/mxagar/statistics_with_python_coursera).
+- My forked repository of the Udemy course Deploying Machine Learning Models by Soledad Galli and [deploying-machine-learning-models](https://github.com/mxagar/deploying-machine-learning-models).
+- An example where I apply some of the techniques explained here: [airbnb_data_analysis](https://github.com/mxagar/airbnb_data_analysis).
 
 ## Authorship
 
