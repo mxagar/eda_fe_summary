@@ -29,7 +29,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 - [Hypothesis Tests](#Hypothesis-Tests)
 - [Data Modelling](#Data-Modelling)
 - [Tips for Production](#Tips-for-Production)
-	- [Pipeliness](#Pipelines)
+	- [Pipelines](#Pipelines)
 - [Relevant Links](#Relevant-Links)
 - [Authorship](#Authorship)
 
