@@ -9,9 +9,9 @@ The steps in the data science pipeline that need to be carried out to answer bus
 5. Feature Selection
 6. Data Modelling
 
-The file [data_processing.py](data_processing.py) compiles the most important tools for the steps 2-5 I use, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle). Additionally, in the following, some practical guidelines are summarized very schematically.
+The file [data_processing.py](data_processing.py) compiles the most important tools I use for the steps 2-5, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle). Additionally, in the following, some practical guidelines are summarized very schematically.
 
-Note that this guide assumes familiarity with `python`, `numpy`, `pandas`, `matplotlib`, `seaborn`, `sklearn` and `scipy`, among others. Additionally, I presume you are acquainted machine learning and data science concepts.
+Note that this guide assumes familiarity with `python`, `numpy`, `pandas`, `matplotlib`, `seaborn`, `sklearn` and `scipy`, among others. Additionally, I presume you are acquainted with machine learning and data science concepts.
 
 For more information on the motivation of the guide, see my [blog post](https://mikelsagardia.io/blog/data-processing-guide.html).
 
@@ -28,22 +28,21 @@ For more information on the motivation of the guide, see my [blog post](https://
 - [Relevant Links](#Relevant-Links)
 - [Authorship](#Authorship)
 
-
 ## General
 
-- Watch at the returned types
-	- Is it a collection or contained? Convert it to a `list()`.
-	- Is it an array/tuple with one item: access it with `[0]`.
+- Watch at the returned types:
+	- If it is a collection or a container, convert it to a `list()`.
+	- If it is an array/tuple with one item, access it with `[0]`.
 - Data frames and series can be sorted: `sort_values(by, ascending=False)`.
 - Recall we can use handy python data structures:
-	- `set()`
-	- `Counter()`
-- Use `np.log1p()` in case you have `x=0`; `log1p(x) = log(x+1)`
-- Use `df.apply()`!
-- Make a copy of the dataset if we drop or change variables: `data = df.copy()`.
-- Categorical variables must be enconded as quantitative variables.
-- Seaborn plots get `plt.figure(figsize=(10,10))` beforehand; pandas plots get `figsize` are argument.
-- `plt.show()` only on scripts!
+	- `set()`: sets of unique elements.
+	- `Counter()`: dict subclass for counting hashable objects.
+- Use `np.log1p()` in case you have `x=0`; `log1p(x) = log(x+1)`.
+- Use `df.apply()` extensively!
+- Make a copy of the dataset if you drop or change variables: `data = df.copy()`.
+- All categorical variables must be enconded as quantitative variables somehow.
+- Seaborn plots get `plt.figure(figsize=(10,10))` beforehand; pandas plots get `figsize` as argument.
+- `plt.show()` only in scripts!
 - Use a seed whenever there is a random number generation to ensure reproducibility!
 - Pandas slicing:
 	- `df[]` should access only to column names/labels: `df['col_name']`.
@@ -53,20 +52,27 @@ For more information on the motivation of the guide, see my [blog post](https://
 
 ## Data Cleaning
 
-- Always do general checks: `head()`, `info()`, `describe()`, `shape`.
+- Always do general checks: `df.head()`, `df.info()`, `df.describe()`, `df.shape`.
 - Always get lists of column types: `select_dtypes()`.
 	- Categorical columns, `object`: `unique()`, `value_counts()`. Can be subdivided in:
-		- `str`: text or category level.
+		- `str`: text or category levels.
 		- `datetime`: encode with `to_datetime()`.
 	- Numerical columns, `int`, `float`: `describe()`.
 - Detect and remove duplicates: `duplicated()`, `drop_duplicates()`.
 - Correct inconsistent text/typos in labels, use clear names: `replace()`, `map()`.
+- Beware: many dataframe modifying operations require `inplace=True` flag to change the dataframe.
 - Detect and fix missing data: 
+	- `isnull() == isna()`.
 	- Plot the missing amounts: `df.isnull().sum().sort_values(ascending=False)[:10].plot(kind='bar')`.
+	- Analyze the effect of missing values on the target: take a feature and compute the target mean & std. for two groups: missing feature, non-missing feature.
+		- This could be combined with a T-test.
+	- Sometimes the missing field is information:
+		- It means there is no object for the field; e.g., `license_povided`: if no string, we understand there is no license.
+		- We can create a category level like `'Missing'`
+		- We can mask the data: create a category for missing values, in case it leads to insights.
 	- `dropna()` rows if several fields missing or missing field is key (e.g., target).
 	- `drop()` columns if many (> 20-30%) values are missing. 
 	- Impute the missing field/column with `fillna()` if few (< 10%) rows missing: `mean()`, `meadian()`, `mode()`.
-	- Mask the data: create a category for missing values, in case it leads to insights.
 	- More advanced:
 		- Predict values with a model.
 		- Use k-NN to impute values of similar data-points.
@@ -78,41 +84,53 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- Scatterplots: `plt.scatter()`, `plt.plot()`.
 	- Residual plots: differences between the real/actual target values and the model predictions.
 	- IQR calculation: use `np.percentile()`.
-	- Drop outliers? Only iff we think they are not representative.
-	- Do transformations fix the `skew()`? `np.log()`, `np.sqrt()`, `stats.boxcox()`.
+	- Drop outliers? Only if we think they are not representative.
+	- Do transformations fix the `skew()`? `np.log()`, `np.sqrt()`, `stats.boxcox()`, `stats.yeojohnson()`.
 		- Usually a absolute skewness larger than 0.75 requires a transformation (feature engineering).
+- Temporal data / dates or datetime: they need to be converted with `to_datetime()` and the we need to compute the time (in days, months, years) to a reference date (e.g., today).
+
 
 ## Exploratory Data Analysis
 
 - Recall we have 3 main ways of plotting:
 	- Matplotlib: default: `plt.hist()`.
 	- Seaborn: nicer, higher interface: `sns.histplot()`.
-	- Pandas built-in: practical: `df.plot(kind='hist')`, `df.hist()`, `df.plot.hist()`.
+	- Pandas built-in: practical: `df.plot(kind='hist')`, `df.hist()`, `df.plot.hist()`; `plt` settings passed as arguments!
+- Usually, the exploration is done plotting the independent variables (features) against the target (dependent or predicted variable).
 - We need to plot / observe **every** feature or variable:
 	- Create automatic lists of variable types: `select_dtypes()`. Usual types:
 		- Numerical: `int`, `float`.
 		- Strings: `object`. Can contain:
-			- `strings`: text or category level.
-			- `dates`: encode with `to_datetime()`.
+			- `str`: text or category level.
+			- `datetime`: encode with `to_datetime()`.
+	- Automatically created lists often need to be manually processed, especially `object` types. 
 	- Loop each type list and apply the plots/tools we require.
 - Quantitative/numerical variables: can be uni/multi-variate; most common EDA tools:
-	- Histograms: `sns.histplot()`, `plt.hist()`, `df.hist()` - look at: shape, center, spread, outliers.
+	- Histograms: `sns.histplot()`, `plt.hist()`, `df.hist()`.
+		- Look at: shape, center, spread, outliers.
 	- Numerical summaries: `describe()`.
-	- Boxplots: `sns.boxplot()` - look at outliers.
-		- Also, combine these two: `sns.catplot()`, `sns.stripplot()`.
-	- Scatteplots: `sns.scatterplot()`, `plt.scatter()`, `sns.regplot()`, `sns.lmplot()` - look at: linear/quadratic relationship, positive/negative, strength: weak/moderate/strong.
+	- Boxplots: `sns.boxplot()`.
+		- Look at outliers.
+		- Also, **combine these two**:
+			- Boxplot: `sns.catplot()`.
+			- Points overlapped: `sns.stripplot()`.
+	- Scatteplots: `sns.scatterplot()`, `plt.scatter()`, `sns.regplot()`, `sns.lmplot()`
+		- Look at: linear/quadratic relationship, positive/negative relationship, strength: weak/moderate/strong.
 		- Beware of the [Simpson's Paradox](https://en.wikipedia.org/wiki/Simpson%27s_paradox).
 	- Correlations: `df.corr()`,  `stats.pearsonr()`; see below.
-		- Beware of the [Simpson's Paradox](https://en.wikipedia.org/wiki/Simpson%27s_paradox).
 - Categorical variables: ordinal (groups have ranking) / cardinal (no order in groups); most common EDA tools:
-	- Count values: `unique()`, `value_counts().plot(kind='bar')`.
+	- Count values: `unique()`, `value_counts().sort_values(ascending=False).plot(kind='bar')`.
 	- Frequency tables; see below.
 	- Bar charts: `sns.barplot()`, `plt.bar()`, `plt.barh()`; use `sort_values()`.
 	- Count plots: `sns.countplot()`.
-- If a continuous variable has different behaviors in different ranges, consider stratifying it with `pd.cut()`. Example: age -> age groups.
+- If a continuous variable has different behaviors in different ranges, consider stratifying it with `pd.cut()`. Example: `age -> age groups`.
 - Frequency tables: stratify if necessary, group by categorical levels, count and compute frequencies.
+	- Recipe: `groupby()`, `value_counts()`, normalize with `apply()`.
+	- See also: `pd.crosstab()`.
 - Correlations:
 	- Heatmap for all numerical variables: `sns.heatmap(df.corr())`.
+		- `cmap`: [Matplotlib colormaps](https://matplotlib.org/stable/gallery/color/colormap_reference.html).
+		- [Seaborn color palettes](https://seaborn.pydata.org/tutorial/color_palettes.html).
 	- Bar chart for correlations wrt. target: `df.corr()['target'].sort_values(ascending=True).plot(kind='bar')`.
 	- Pair correlations: `stats.pearsonr(df['x'],df['y'])`.
 	- Check if there is multicolinearity: it's not good.
@@ -132,31 +150,48 @@ For more information on the motivation of the guide, see my [blog post](https://
 ## Feature Engineering
 
 - Always make a copy of the dataset if we change it: `df.copy()`.
-- Transformations: if variables have a `skew()` larger than 0.75.
+- Transformations: apply if variables have a `skew()` larger than 0.75.
 	- Target: usually the logarithm is applied: `df[col] = df[col].apply(np.log1p)`.
-		- That makes undoing the transformation very easy: `np.exp(pred)`.
-		- If power transformations used (e.g., `boxcox`, `yeojohnson`), we need to save the params/transformer and make sure we know how to invert the transformation!
-	- Predictor /independent variables: `scipy` or `sklearn` can be used for power transformations (e.g., `boxcox`, `yeojohnson`). 
-- Extract / create new features, more descriptive
-	- Multiply different features if we suspect there might be an interaction
+		- That makes undoing the transformation very easy: `np.exp(y_pred)`.
+		- If power transformations are used (e.g., `boxcox`, `yeojohnson`), we need to save the params/transformer and make sure we know how to invert the transformation!
+	- Predictor / independent variables: `scipy` or `sklearn` can be used for power transformations (e.g., `boxcox`, `yeojohnson`). 
+- Extract / create new features, more descriptive:
+	- Multiply different features if we suspect there might be an interaction.
 	- Divide different features, if the division has a meaning.
-	- Create categorical data from continuous it that has a meaning, e.g., daytime.
+	- Create categorical data from continuous if that has a meaning, e.g., daytime.
 	- Try polynomial features: `PolynomialFeatures()`.
 	- Create deviation factors from the mean of a numeric variable in groups or categories of another categorical variable. 
-- Replace categorical levels with few counts with `'other'`.
-- Feature encoding
+- Measure the cardinality of the categorical variables: how many catgeories they have.
+	- `data[cat_vars].nunique().sort_values(ascending=False).plot.bar(figsize=(12,5))`
+	- Replace categorical levels with few counts with `'other'`.
+- Categorical feature encoding:
 	- One-hot encoding / dummy variables: `get_dummies()`.
+		- Alternative: `sklearn.preprocessing.OneHotEncoder`.
+		- In general, `sklearn` encoders are objects that can be saved and have attributes and methods: `classes_`, `transform()`, `inverse_transform()`, etc.
+	- Binarization: manually with `apply()`, `np.where()` or `sklearn.preprocessing.LabelBinarizer`.
+		- Usually very skewed variables are binarized.
+			- We can check the predictive strength of binarized variables with bar plots and T tests: we binarize and compute the mean & std. of the target according to the binary groups.
+		- `LabelBinarizer`: `fit([1, 2, 6, 4, 2]) -> transform([1, 6]): [[1, 0, 0, 0], [0, 0, 0, 1]]`.
+		- Sometimes it is necessary to apply this kind of multi-class binarization to the **target**.
+	- Also useful for the **target**: `sklearn.preprocessing.LabelEncoder`: `fit(["paris", "paris", "tokyo", "amsterdam"]) -> transform(["tokyo", "paris"]): [2, 1]`.
+	- Ordinal encoding: convert ordinal categories to `0,1,2,...`; but be careful: we're assuming the distance from one level to the next is the same -- Is it really so? Maybe it's better applying one-hot encoding?
+		- `sklearn` tools: `OrdinalEncoder`, `DictVectorizer`.
+	- There are many more tools: [Preprocessing categorical features](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-categorical-features)
+	- If the target is binary and we want to encode categorical features, we can store the target ratios associated to each feature category level.
 - Train/test split: perform it before scaling the variables: `train_test_split()`.
 - Feature scaling: apply it if data-point distances are used in the model; fit the scaler only with the train split!
-	- `StandardScaler()`: subtract the mean and divide by the standard deviation; features are converted to standard normal viariables.
+	- `StandardScaler()`: subtract the mean and divide by the standard deviation; features are converted to standard normal viariables. Note that if dummy variables `[0,1]` passed, they are scaled, too. That should not be an issue,  but the interpretation is not as intuitive later on. Alternatives: use `MinMaxScaler()` or do not pass dummies to the scaler.
 	- `MinMaxScaler()`: a mapping with which the minimum value becomes 0, max becomes 1. This is senstive to outliers!
 	- `RobustScaler()`: IQR range is mapped to `[0,1]`, i.e., percentiles `25%, 75%`; thus, the scaled values go out from the `[0,1]` range.
 
 ## Feature Selection
 
 - We can measure sparsity of information with `PCA()`; if less variables explain most of the variance, we could drop some.
-- Select variables with L1 regularized regression (lasso): `SelectFromModel(Lasso())`. L1 regularization forces coefficients of less important variables to become 0; thus, we can remove them.
-- Use pairplots to check multi-colinearity; correlated features are not good.
+- Select variables with L1 regularized regression (lasso): `SelectFromModel(Lasso())`.
+	- L1 regularization forces coefficients of less important variables to become 0; thus, we can remove them.
+- Use `sns.pairplot()` or similar to check multi-colinearity; correlated features are not good.
+- If the model is overfitting, consider dropping features.
+	- Ovefitting: when performance metric is considerably better with train split than in cross-validation/test split.
 
 ## Hypothesis Tests
 
@@ -194,12 +229,29 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 		- Dimensionality reduction: `PCA`.
 - Always evaluate with cross-validation/test split.
 	- Regression: R2, RMSE.
-	- Classification: confusion matrix, accuracy, F1.
+	- Classification: confusion matrix, accuracy, F1, ROC curve (AUC).
 - Plot model parameters to understand what's going on; often it's better than the predictions.
+- If text reports need to be saved, convert them to figures: `plt.text()`.
 
 ## Tips for Production
 
-TBD.
+Software engineering for production deployments is out of the scope of this guide, because the goal is to focus on the data processing and analysis; however, some minor guidelines are provided. Going from a research/development environment to a production environment implies we need to:
+
+- assure reproducibility,
+- apply all, checks, encodings and transformations to new data points on-the-fly,
+- score the model automatically and track the results.
+
+Thus, among others, we should do the following:
+
+- Persist any transformation / encoding / paramaters generated.
+- Use `Pipelines` and pack any transformations to them! That implies:
+	- Using `sklearn` transformers/encoders instead of manually encoding anything,
+	- or `feature_engine` ones: [feature_engine](https://feature-engine.readthedocs.io/en/latest/),
+	- or to create our own functions embedded in derived classes of these, so that they can be added to a `Pipeline`.
+- Modularize the code into functions to transfer it to python scripts.
+- Try Test Driven Development (TDD).
+- Catch errors and provide a robust execution.
+- Log events.
 
 ## Relevant Links
 

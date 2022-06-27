@@ -51,10 +51,10 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, plot_roc_curve
 
-# Binary or one-hot encoding with Scikit-Learn
-from sklearn.preprocessing import LabelEncoder, LabelBinarizer, OneHotEncoder
+# Encoding with Scikit-Learn
+from sklearn import preprocessing # LabelEncoder, LabelBinarizer, OneHotEncoder
 # from pandas import get_dummies
 
 # Ordinal encoding with Scikit-Learn; ordinal = there is a ranking order between category levels
@@ -86,17 +86,21 @@ df["price"].describe() # use .T if many columns
 # Always save lists of numerical/continuous and categorical columns
 categorical_cols = list(df.select_dtypes(include = ['object']))
 numerical_cols = list(df.select_dtypes(include = ['float', 'int']))
+# Other ways:
+categorical_cols = [var for var in df.columns if df[var].dtype == 'O']
+
+# Cast a variable
+df['var'] = df['var'].astype('O')
 
 # IQR = 1.5*(q75-q25) -> outlier detection
 q25, q50, q75 = np.percentile(df['price'], [25, 50, 75])
-# Skewness: a absolute value larger than 0.75 requires transformations
+# Skewness: an absolute value larger than 0.75 requires transformations
 df['price'].skew()
 
 # Get uniques and counts of the levels of a categorcial variable
 df["condition"].value_counts().sort_values(ascending=False).plot(kind='bar')
 df["condition"].unique()
 
-# Do you need sampling?
 # Pandas sample of n=5 rows/data-points that only appear once
 sample = df.sample(n=5, replace=False)
 
@@ -104,14 +108,17 @@ sample = df.sample(n=5, replace=False)
 word_list = text.lower().split(' ')
 number = int(text.split(' ')[0])
 
-# GROUP BY
+# Group By
 # When grouping by a column/field,
-# we need to apply the an aggregate function
+# we apply the an aggregate function
 df.groupby('species').mean()
 df.groupby('species').agg([np.mean, np.median])
 df.groupby(['year', 'city'])['var'].median()
 
-# Dates
+# Average job satisfaction depending on company size
+df.groupby('CompanySize')['JobSatisfaction'].mean().dropna().sort_values()
+
+# Dates: are usually 'object' type, they need to be converted & processed
 df['date'] = pd.to_datetime(df['date'], format='%b-%y')
 df['month'] = df['date'].dt.month_name().str.slice(stop=3)
 df['year'] = df['date'].dt.year
@@ -125,7 +132,7 @@ df['year'] = df['date'].dt.year
 # - `df[]` can be used for changing entire column values,
 #		but `df.loc[]` or `df.iloc[]` should be used for changing sliced row values.
 df.loc[['a', 'b'],'BMXLEG'] # df.index = ['a', 'b', ...]
-df.loc[[0, 1],3]
+df.iloc[[0, 1],3]
 
 # Selection / Filtering: Column selection after name
 col_names = df.columns # 'BMXWT', 'BMXHT', 'BMXBMI', 'BMXLEG', 'BMXARML', ...
@@ -134,7 +141,7 @@ df_BMX = df[keep]
 
 # Selection / Filtering: With booleans
 df.loc[:, keep].head()
-# # Indexing with booleans: Which column (names) are in keep?
+# Indexing with booleans: Which column (names) are in keep?
 index_bool = np.isin(df.columns, keep)
 df_BMX = df.iloc[:,index_bool]
 
@@ -162,25 +169,57 @@ duplicated_removed = df.drop_duplicates()
 # Check that all indices are unique
 df.index.is_unique
 
+# Columns/Feature with NO missing values
+no_nulls = set(df.columns[df.isnull().sum()==0])
+# Columns/Feature with more than 75% of values missing
+most_missing_cols = set(df.columns[(df.isnull().sum()/df.shape[0]) > 0.75])
+
 # Detect missing values, sort them ascending, plot
 # isnull() == isna()
 total = df.isnull().sum().sort_values(ascending=False)
 total_select = total.head(20)/df.shape[0]
 total_select.plot(kind="bar", figsize = (8,6), fontsize = 10)
+plt.axhline(y=0.90, color='r', linestyle='-') # 90% missing line
 plt.xlabel("Columns", fontsize = 20)
 plt.ylabel("Count", fontsize = 20)
 plt.title("Total Missing Values", fontsize = 20)
 
+# Analyze the effect of missing values on the target:
+# take a feature and compute the target mean & std. for two groups: 
+# (1) missing feature, (2) non-missing feature.
+def analyse_na_value(df, var):
+	# IMPORTANT: copy
+    df = df.copy()
+    df[var] = np.where(df[var].isnull(), 1, 0)
+    tmp = df.groupby(var)['target'].agg(['mean', 'std'])
+    tmp.plot(kind="barh", y="mean", legend=False,
+             xerr="std", title="Sale Price", color='green')
+for var in vars_with_na:
+    analyse_na_value(data, var)
+
 # All rows with NA in column "variable" dropped, but not inplace!
 df.dropna(subset=["variable"])
-
 # Entire column "variable" dropped, but not inplace!
 df.drop("variable", axis=1)
+# More dropping options
+all_drop  = df.dropna() # all rows with at least one NA columns dropped
+all_row = df.dropna(how='all') # all rows with all cols NA dropped
+only3or1_drop = small_dataset.dropna(subset=['col1','col3']) # all rows with at least one NA in col1 or col3 dropped
+df.drop('C',axis=1,inplace=True) # drop complete column C in place; default axis = 0, ie., rows
 
 # Compute median of a column/feature
 median = df["variable"].median() # also: mean(), std(), mode(), etc.
-# Replace/impute NA values with median
+# Replace / Impute NA values with median
 df["variable"].fillna(median, inplace = True)
+
+# Imputation: More options
+fill_mode = lambda col: col.fillna(col.mode()[0]) # mode() returns a series, pick first value
+df = df.apply(fill_mode, axis=0)
+# BUT: Prefer better this approach
+# because apply might lead to errors
+num_vars = df.select_dtypes(include=['float', 'int']).columns
+for col in num_vars:
+    df[col].fillna((df[col].mean()), inplace=True)
 
 # Box plot: detect outliers that are outside the 1.5*IQR
 # Keeping or removing them depends on our understanding of the data
@@ -207,7 +246,7 @@ df['bath_private'] = df['bath_description'].apply(lambda text: 1 if 'private' in
 dictionary = {'value1':'val1', 'value3':'val2'}
 df['variable'] = df['variable'].map(dictionary)
 
-# Convert the dates to days since today
+# Tempodal data: Convert the dates to days since today
 today = dt.datetime(2022,6,17)
 for col in dat_cols:
     df[col] = pd.to_datetime(df[col], format='%Y-%m-%d')`# format='%d/%m/%Y', etc. 
@@ -218,7 +257,8 @@ for col in dat_cols:
 ##### -- Exploratory Data Analysis (EDA)
 ##### -- 
 
-# Matplotlib: Several diagrams overlaid / Scatterplots if linestyle ''
+# Matplotlib: Several diagrams overlaid
+# plot(): point coordinates joined with lines; scatterplots if linestyle ''
 fig = plt.figure(figsize=(10,10))
 # Scatterplot, because ls=''
 plt.plot(df.var1, df.var2, ls='', marker='o', color='red', label='Vars 1 & 2')
@@ -236,13 +276,14 @@ fig, axes = plt.subplots(nrows = 1, ncols = 2)
 for ax in axes:
 	ax.plot(x,y)
 
-# Pandas plotting
+# Pandas plotting; plt settings passed as argument
 df['language'].value_counts().plot(kind='bar')
 plt.title('Languages')
 
 # Histograms
 plt.hist(df.var, bins=25)
 sns.histplot(df.var, bins=25)
+df.plot.hist(bins=25)
 
 # Histograms: Nicer
 plt.figure(figsize=(10,4))
@@ -259,10 +300,10 @@ plt.scatter(x=df['var1'], y=df['var2'])
 sns.scatterplot(x="seniority",y="income",hue="gender",data=df)
 
 # Jointplots: density isolines for a pair of quantitative variables
-# Two variables plotted; type of scatterplot scecified + density histograms
+# Two variables plotted; type of scatterplot specified + density histograms
 sns.jointplot(x=df['var1'],y=df['var2'],kind='hex')
 
-# Scatterplot -> Scatterplot + Linear regression line plotted
+# Scatterplot + Linear regression line plotted
 sns.lmplot(x='x', y='y', data=df)
 sns.reglot(x='x', y='y', data=df)
 # ... with hue
@@ -293,10 +334,14 @@ sns.swarmplot(x="x", y="y", data=df)
 sns.violinplot(x="gender", y="age", data=df)
 
 # Correlations and heatmaps
-sns.heatmap(df.corr(),annot=True,cmap='RdYlGn')
+# cmap: https://matplotlib.org/stable/gallery/color/colormap_reference.html
+# palette: https://seaborn.pydata.org/tutorial/color_palettes.html
+sns.heatmap(df.corr(), annot=True, cmap='RdYlGn', fmt=".2f")
 df.corr()['target'].sort_values(ascending=True).plot(kind='bar')
 
 # Frequency tables: Stratify & Group
+# Recipe: groupby(), value_counts(), normalize with apply().
+# See also: pd.crosstab()
 df["age_group"] = pd.cut(df.age, [18, 30, 40, 50, 60, 70, 80])
 # Eliminate rare/missing values
 dx = df.loc[~df.education_level.isin(["Don't know", "Missing"]), :] 
@@ -318,7 +363,7 @@ print(dx.to_string(float_format="%.3f"))
 # Bars, Horizontal bars
 plt.bar(np.arange(10), df.var.iloc[:10])
 plt.barh(np.arange(10), df.var.iloc[:10])
-sns.barplot(data=df,x='married',y='income',hue='gender')
+sns.barplot(data=df, x='married', ='income', hue='gender')
 
 # Countplots: bar plot of the selected variable
 sns.countplot(x='gender', data=df)
@@ -379,6 +424,10 @@ feat_array = pf.transform(df[features])
 df_poly = pd.DataFrame(feat_array, columns = pf.get_feature_names(input_features=features))
 df = pd.concat([df,df_poly])
 
+# Measure the cardinality of the categorical variables:
+# how many catgeories they have.
+df[categorical_vars].nunique().sort_values(ascending=False).plot.bar(figsize=(12,5))
+
 # Replace categorical levels with few counts with 'other'
 nbh_counts = df.neighborhood.value_counts()
 other_nbhs = list(nbh_counts[nbh_counts <= 8].index)
@@ -394,7 +443,35 @@ def add_deviation_feature(df, feature, category):
     df[feature + '_dev_' + category] = deviation_feature 
 add_deviation_feature(df, 'overall_quality', 'neighborhood')
 
-# One-hot encoding: Dummy variables with pandas
+# Binarization: usually very skewed variables are binarized.
+# We can do it with apply(), np.where() or some other ways.
+# However, we should check the predictive strength of binarized variables
+# with bar plots and T tests:
+# we binarize and compute the mean & std. of the target
+# according to the binary groups.
+for var in skewed:
+    # IMPORTANT: copy
+    tmp = data.copy()
+    tmp[var] = np.where(df[var]==0, 0, 1)
+    tmp = tmp.groupby(var)['target'].agg(['mean', 'std'])
+    tmp.plot(kind="barh", y="mean", legend=False,
+             xerr="std", title="Sale Price", color='green')
+
+# Encoding of the target classes
+from sklearn import preprocessing
+# Encode names as 0...(n-1) class numbers
+le = preprocessing.LabelEncoder()
+le.fit(["paris", "paris", "tokyo", "amsterdam"])
+list(le.classes_) # ['amsterdam', 'paris', 'tokyo']
+le.transform(["tokyo", "tokyo", "paris"]) # [2, 2, 1]
+list(le.inverse_transform([2, 2, 1])) # ['tokyo', 'tokyo', 'paris']
+# Encode class numbers as binary vectors
+lb = preprocessing.LabelBinarizer()
+lb.fit([1, 2, 6, 4, 2])
+lb.classes_ # array([1, 2, 4, 6])
+lb.transform([1, 6]) # array([[1, 0, 0, 0], [0, 0, 0, 1]])
+
+# One-hot encoding of features: Dummy variables with pandas
 col_dummies = ['var1', 'var2']
 try:
     for col in col_dummies:
@@ -415,7 +492,25 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42, # we are setting the seed here
 )
 
-# Fit the scaler to the train set only
+# Encoding of categorical variables if target is categorical/binary
+# Loop over all categorical columns
+# Create new variable which contains the target ratio
+# associated with each category/level
+categorical_cols_encoded = []
+for col in categorical_cols:
+	# Category levels for each col: target mean for each level
+    col_groups = df.groupby(col).mean()['target']
+    # Value column: target mean of the corresponding level
+    col_values = []
+    for val in data[col]:
+        col_values.append(col_groups.loc[val])
+
+    col_encoded_name = col + '_target'
+    categorical_cols_encoded.append(col_encoded_name)
+    df[col_encoded_name] = col_values
+
+# Fit the scaler to the train set only!
+# Try different scalers: StandardScaler(), RobustScaler(), etc.
 scaler = MinMaxScaler()
 scaler.fit(X_train) 
 
@@ -431,7 +526,7 @@ X_test = pd.DataFrame(
     columns=X_train.columns
 )
 
-# Always save the scaler!
+# Always save the scaler + any transformer object + parameters!
 joblib.dump(scaler, filepath+'minmax_scaler.joblib')
 
 
@@ -698,6 +793,15 @@ print('R2', r2_score(np.exp(y_test), np.exp(pred_test)))
 # If Classification: confusion matrix, accuracy, precision, recall, F1
 print(confusion_matrix(y_test,pred_test))
 print(classification_report(y_test,pred_test))
+
+# If we want to convert text tables as figure (for saving)
+plt.figure(figsize=(5, 5))
+plt.text(0.01, 1.25, str('Table Title'), {'fontsize': 10}, fontproperties = 'monospace')
+plt.text(0.01, 0.05, str(classification_report(y_train, y_pred)), {'fontsize': 10}, fontproperties = 'monospace')
+plt.axis('off')
+
+# If classification: ROC curve (& AUC)
+model_roc_plot = plot_roc_curve(model, X_test, y_test) # ROC curve plotted and AUC computed
 
 # If Regression: Plot True y vs. Predicted y
 plt.figure(figsize=(8,8))
