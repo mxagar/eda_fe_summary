@@ -719,6 +719,22 @@ contingency.plot(kind='bar')
 chi2, p_val, dof, exp_freq = chi2_contingency(contingency, correction = False)
 print('chi-square statistic: {} , p_value: {} , degree of freedom: {} ,expected frequencies: {} '.format(chi2, p_val, dof, exp_freq))
 
+# Power analysis:
+# The following four variables are related (i.e., fixing 3, we predict the 4th):
+# - Effect size: Cohen's d between groups : d = (mean_1 - mean_2) / unpooled_std
+# - Sample size (n)
+# - Significance level (alpha)
+# - Statistical power (1-beta)
+# Estimate sample size via power analysis
+from statsmodels.stats.power import TTestIndPower
+# parameters for power analysis
+effect = 0.8 # Cohen's d
+alpha = 0.05
+power = 0.8 # 1 - beta
+# perform power analysis
+analysis = TTestIndPower()
+result = analysis.solve_power(effect, power=power, nobs1=None, ratio=1.0, alpha=alpha)
+print('Sample Size: %.3f' % result)
 
 ##### -- 
 ##### -- Data Modelling
@@ -833,5 +849,3 @@ importance.sort_values(by='coef',ascending=True,inplace=True)
 color_list = ['b' if el > 0 else 'r' for el in [importance['plus'].iloc[i] for i in range(importance['plus'].shape[0])]]
 importance['coef'][-top_features:].plot(kind='barh',color=color_list[-top_features:])
 plt.xlabel('Coefficient Value of Features')
-
-
