@@ -373,7 +373,6 @@ Thus, among others, we should do the following:
 In the following, a vanilla example with `Pipeline`:
 
 ```python
-```python
 # Import necessary Transformers & Co.
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
@@ -399,7 +398,7 @@ pipe.score(X_test, y_test)
 
 - My notes on the [IBM Machine Learning Professional Certificate](https://www.coursera.org/professional-certificates/ibm-machine-learning) from Coursera: [machine_learning_ibm](https://github.com/mxagar/machine_learning_ibm).
 - My notes on the [Statistics with Python Specialization](https://www.coursera.org/specializations/statistics-with-python) from Coursera (University of Michigan): [statistics_with_python_coursera](https://github.com/mxagar/statistics_with_python_coursera).
-- My forked repository of the Udemy course [Deployment of Machine Learning Models](https://www.udemy.com/course/deployment-of-machine-learning-models/) by Soledad Galli and Christopher Samiullah [deploying-machine-learning-models](https://github.com/mxagar/deploying-machine-learning-models).
+- My forked repository of the Udemy course [Deployment of Machine Learning Models](https://www.udemy.com/course/deployment-of-machine-learning-models/) by Soledad Galli and Christopher Samiullah: [deploying-machine-learning-models](https://github.com/mxagar/deploying-machine-learning-models).
 - An example where I apply some of the techniques explained here: [airbnb_data_analysis](https://github.com/mxagar/airbnb_data_analysis).
 
 ## Authorship
