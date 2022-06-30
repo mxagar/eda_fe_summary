@@ -388,6 +388,19 @@ plot.map(plt.hist, 'height', color='green')
 # Always make a copy!
 df = data.copy()
 
+# Normality checks
+# Even though it is not necessary to have a normally distributed target
+# having it so often improves the R2 of the model.
+# We can check the normality of a variable in two ways:
+# - visually: hist(), QQ-plot
+# - with normality checks, e.g., D'Agostino
+
+# Normality check: D'Agostino
+# if p-value > 0.05: normal;
+# the larger the p-value, the larger the probability of normality
+from scipy.stats.mstats import normaltest # D'Agostino K^2 Test
+normaltest(df['target'].values)
+
 # Statsmodels: Yeo-Johnson and Box-Cox transormations
 # Always store params!
 df[var+'_box'], param_box = stats.boxcox(df[var])
@@ -403,6 +416,11 @@ for var in selected_cols:
     plt.scatter(tmp[var], df['target'])
     plt.ylabel('Target')
     plt.xlabel('Transformed ' + var)
+
+# Check if there are inverse transformation functions!
+# Box-Cox has one; you need the lambda parameter that was computed
+from scipy.special import inv_boxcox
+y_pred = inv_boxcox(y_pred_bc,lmbd)
 
 # Scikit-Learn Power Transformer
 pt = PowerTransformer(method='box-cox', standardize=False) # method=‘yeo-johnson’

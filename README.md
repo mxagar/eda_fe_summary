@@ -156,10 +156,17 @@ For more information on the motivation of the guide, see my [blog post](https://
 ## Feature Engineering
 
 - Always make a copy of the dataset if we change it: `df.copy()`.
-- Transformations: apply if variables have a `skew()` larger than 0.75.
-	- Target: usually the logarithm is applied: `df[col] = df[col].apply(np.log1p)`.
+- Transformations:
+	- General notes:
+		- Apply if variables have a `skew()` larger than 0.75; we can also perform normality checks: `scipy.stats.mstats.normaltest`.
+		- Try first how well work simple functions: `np.log()`, `np.log1p()`, `np.sqrt()`.
+		- If `hist()` / `skew()` / `normalitytest()` don't look good, try power transformations, but remember saving their parameters and make sure we have an easi inverse function:
+			- Box-Cox: generalized power transformation which usually requires `x > 0`: `boxcox = (x^lambda + 1)/lambda`.
+			- Yeo-Johnson: more sophisticated, piece-wise - better results, but more difficult to invert & interpret.
+	- Target: although it is not necessary for it to be normal, nomal targets yield better R2 values.
+		- Often the logarithm is applied: `df[col] = df[col].apply(np.log1p)`.
 		- That makes undoing the transformation very easy: `np.exp(y_pred)`.
-		- If power transformations are used (e.g., `boxcox`, `yeojohnson`), we need to save the params/transformer and make sure we know how to invert the transformation!
+		- However, check if power transformations are better suited (e.g., `boxcox`, `yeojohnson`); if we use them we need to save the params/transformer and make sure we know how to invert the transformation!
 	- Predictor / independent variables:
 		- `scipy` or `sklearn` can be used for power transformations, e.g., `boxcox`, `yeojohnson`.
 		- We can discretize very skewed variables, i.e., we convert then into categorical: we transform the distributions into histograms in which bins are defined as equal width/frequency. That way, each value is assigned the bin number. Additionally, see binarization below.
