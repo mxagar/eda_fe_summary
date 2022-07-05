@@ -59,7 +59,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 
 - Always do general checks: `df.head()`, `df.info()`, `df.describe()`, `df.shape`.
 - Always get lists of column types: `select_dtypes()`.
-	- Categorical columns, `object`: `unique()`, `value_counts()`. Can be subdivided in:
+	- Categorical columns, `object`: `unique()`, `nunique()`, `value_counts()`. Can be subdivided in:
 		- `str`: text or category levels.
 		- `datetime`: encode with `to_datetime()`.
 	- Numerical columns, `int`, `float`: `describe()`.
@@ -125,7 +125,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- Beware of the [Simpson's Paradox](https://en.wikipedia.org/wiki/Simpson%27s_paradox).
 	- Correlations: `df.corr()`,  `stats.pearsonr()`; see below.
 - Categorical variables: ordinal (groups have ranking) / cardinal (no order in groups); most common EDA tools:
-	- Count values: `unique()`, `value_counts().sort_values(ascending=False).plot(kind='bar')`.
+	- Count values: `unique()`, `nunique()`, `value_counts().sort_values(ascending=False).plot(kind='bar')`.
 	- Frequency tables; see below.
 	- Bar charts: `sns.barplot()`, `plt.bar()`, `plt.barh()`; use `sort_values()`.
 	- Count plots: `sns.countplot()`.
@@ -183,7 +183,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- rare labels.
 	- Replace categorical levels with few counts (rare) with `'other'`.
 - Categorical feature encoding:
-	- One-hot encoding / dummy variables: `get_dummies()`.
+	- One-hot encoding / dummy variables: `get_dummies()`; use `drop_first=True` to avoid multi-colinearity issues!
 		- Alternative: `sklearn.preprocessing.OneHotEncoder`.
 		- In general, `sklearn` encoders are objects that can be saved and have attributes and methods: `classes_`, `transform()`, `inverse_transform()`, etc.
 	- Binarization: manually with `apply()`, `np.where()` or `sklearn.preprocessing.LabelBinarizer`.
@@ -196,7 +196,9 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- `sklearn` tools: `OrdinalEncoder`, `DictVectorizer`.
 	- There are many more tools: [Preprocessing categorical features](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-categorical-features)
 	- Weight of evidence: If the target is binary and we want to encode categorical features, we can store the target ratios associated to each feature category level.
-- Train/test split: perform it before scaling the variables: `train_test_split()`.
+- Train/test split: perform it before scaling the variables: `train_test_split()`. ALWAYS use the seed for reproducibility!
+	- `ShuffleSplit`: if several train-test splits are required, not just one. 
+	- `StratifiedShuffleSplit`: same as before, but when we have imbalanced datasets and we'd like to maintain the label/class ratios in each split to avoid introducing bias.
 - Feature scaling: apply it if data-point distances are used in the model; fit the scaler only with the train split!
 	- `StandardScaler()`: subtract the mean and divide by the standard deviation; features are converted to standard normal viariables. Note that if dummy variables `[0,1]` passed, they are scaled, too. That should not be an issue,  but the interpretation is not as intuitive later on. Alternatives: use `MinMaxScaler()` or do not pass dummies to the scaler.
 	- `MinMaxScaler()`: a mapping with which the minimum value becomes 0, max becomes 1. This is senstive to outliers!

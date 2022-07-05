@@ -82,6 +82,7 @@ df = pd.read_csv('data/dataset.csv')
 df.head(3)
 df.info()
 df["price"].describe() # use .T if many columns
+df.dtypes.value_counts() # counts of each type
 
 # Always save lists of numerical/continuous and categorical columns
 categorical_cols = list(df.select_dtypes(include = ['object']))
@@ -490,12 +491,13 @@ lb.classes_ # array([1, 2, 4, 6])
 lb.transform([1, 6]) # array([[1, 0, 0, 0], [0, 0, 0, 1]])
 
 # One-hot encoding of features: Dummy variables with pandas
+# Use drop_first=True to remove the first category and avoid multi-colinearity
 col_dummies = ['var1', 'var2']
 try:
     for col in col_dummies:
         df = pd.concat([df.drop(col, axis=1),
         				pd.get_dummies(df[col], prefix=col, prefix_sep='_',
-        					drop_first=False, dummy_na=False)],
+        					drop_first=True, dummy_na=False)],
                         axis=1)
 except KeyError as err:
     print("Columns already dummified!")
@@ -507,7 +509,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, # predictive variables
     y, # target
     test_size=0.1, # portion of dataset to allocate to test set
-    random_state=42, # we are setting the seed here
+    random_state=42, # we are setting the seed here, ALWAYS DO IT!
 )
 
 # Encoding of categorical variables if target is categorical/binary
