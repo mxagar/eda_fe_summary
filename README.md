@@ -340,14 +340,21 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 
 - Most common approaches to start with tabular data:
 	- Supervised learning:
-		- Regression: `Ridge`, `RandomForestRegressor`.
+		- Regression: `Ridge`, `Lasso`, `RandomForestRegressor`.
 		- Classification: `RandomForestClassifier`.
 	- Unsupervised learning:
 		- Clustering: `KMeans`.
 		- Dimensionality reduction: `PCA`.
-- Always evaluate with cross-validation/test split.
+- Always evaluate with a test split that never was exposed to the model
 	- Regression: R2, RMSE.
 	- Classification: confusion matrix, accuracy, F1, ROC curve (AUC).
+- **Cross-validation** and **hyperparameter tuning**:
+	- Perform a `train_test_split`, take `X_train` for cross-validation, `X_test` for final model performance
+	- Define a k-fold split: non-overlapping validation splits within the `train` subset
+		- Regression: `KFold`
+		- Classification: `StratifiedKFold` to keep class ratios and avoid bias
+	- Define a `Pipeline` with the models from which parameters need to be found/optimized (see `Pipelines` below).
+	- Instantiate and fit `GridSearchCV` with the parameters to be optimized.
 - Plot model parameters to understand what's going on; often it's better than the predictions.
 - If text reports need to be saved, convert them to figures: `plt.text()`.
 

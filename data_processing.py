@@ -440,7 +440,7 @@ pf = PolynomialFeatures(degree=2)
 features = ['var1', 'var2']
 pf.fit(df[features])
 feat_array = pf.transform(df[features])
-df_poly = pd.DataFrame(feat_array, columns = pf.get_feature_names(input_features=features))
+df_poly = pd.DataFrame(feat_array, columns = pf.get_feature_names_out(input_features=features))
 df = pd.concat([df,df_poly])
 
 # Measure the cardinality of the categorical variables:
@@ -869,3 +869,57 @@ importance.sort_values(by='coef',ascending=True,inplace=True)
 color_list = ['b' if el > 0 else 'r' for el in [importance['plus'].iloc[i] for i in range(importance['plus'].shape[0])]]
 importance['coef'][-top_features:].plot(kind='barh',color=color_list[-top_features:])
 plt.xlabel('Coefficient Value of Features')
+
+## CROSS-VALIDATION: Hyperparameter Tuning
+
+# We can loop across different parameter values and find the set
+# that yields the optimum metric.
+# Instead of doing it manually, we can do it with GridSearchCV
+
+from sklearn.model_selection import GridSearchCV
+
+# Set estimator Pipeline: all necessary feature engineering steps
+# with parameters to tune + scaling + model
+estimator = Pipeline([
+    ("polynomial_features", PolynomialFeatures()),
+    ("scaler", StandardScaler()),
+    ("ridge_regression", Ridge())])
+
+# Definition of k=3 mutually exclusive validation splits
+# Alternatives if class ratios need to be kept: StratifiedKFolds
+kf = KFold(shuffle=True, random_state=72018, n_splits=3)
+
+# We compose a dictionary with parameter values to test or to look up
+# If the estimator is a model: {'paramater':[value_array]}
+# If the estimator is a Pipeline: {'object_name__parameter':[value_array]}; note the double '_'!
+params = {
+    'polynomial_features__degree': [1, 2, 3],
+    'ridge_regression__alpha': np.geomspace(1e-3, 20, 30) # locagithmic jumps
+}
+
+# Instantiate a grid search for cross-validation
+grid = GridSearchCV(estimator, params, cv=kf)
+
+# Find the optimal parameters
+# Basically, the estimator is fit going through all parameter combinations:
+# 3 degrees x 30 alphas = 90 combinations
+grid.fit(X, y) # X_train, y_train
+
+# Get best values: cross-validation score and parameters associated with it
+grid.best_score_, grid.best_params_
+
+# The best parameter set is taken and the estimator used to predict
+# Notice that "grid" is a fit object!
+# We can use grid.predict(X_test) to get brand new predictions!
+y_predict = grid.predict(X) # X_test
+
+# This includes both in-sample and out-of-sample
+r2_score(y, y_predict) # y_test, y_predict
+
+# We can access any Pipeline object of the best estimator
+# and their attributes & methods!
+# Here, the model coefficients
+grid.best_estimator_.named_steps['ridge_regression'].coef_
+
+# Get the model statistics/properties of each parameter combination
+pd.DataFrame(grid.cv_results_)
