@@ -186,6 +186,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- One-hot encoding / dummy variables: `get_dummies()`; use `drop_first=True` to avoid multi-colinearity issues!
 		- Alternative: `sklearn.preprocessing.OneHotEncoder`.
 		- In general, `sklearn` encoders are objects that can be saved and have attributes and methods: `classes_`, `transform()`, `inverse_transform()`, etc.
+		- Use `pd.Categorical()` if we want to dummify integers; for strings or `np.object` this should not be necessary.
 	- Binarization: manually with `apply()`, `np.where()` or `sklearn.preprocessing.LabelBinarizer`.
 		- Usually very skewed variables are binarized.
 			- We can check the predictive strength of binarized variables with bar plots and T tests: we binarize and compute the mean & std. of the target according to the binary groups.
@@ -340,7 +341,7 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 
 - Most common approaches to start with tabular data:
 	- Supervised learning:
-		- Regression: `Ridge`, `Lasso`, `RandomForestRegressor`.
+		- Regression (focussing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
 		- Classification: `RandomForestClassifier`.
 	- Unsupervised learning:
 		- Clustering: `KMeans`.
@@ -355,6 +356,7 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 		- Classification: `StratifiedKFold` to keep class ratios and avoid bias
 	- Define a `Pipeline` with the models from which parameters need to be found/optimized (see `Pipelines` below).
 	- Instantiate and fit `GridSearchCV` with the parameters to be optimized.
+	- **Alternative**: use models with built-in cross-validation: `RidgeCV`, `LassoCV`, `ElasticNetCV`.
 - Plot model parameters to understand what's going on; often it's better than the predictions.
 - If text reports need to be saved, convert them to figures: `plt.text()`.
 

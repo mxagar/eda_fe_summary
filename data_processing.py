@@ -490,6 +490,13 @@ lb.fit([1, 2, 6, 4, 2])
 lb.classes_ # array([1, 2, 4, 6])
 lb.transform([1, 6]) # array([[1, 0, 0, 0], [0, 0, 0, 1]])
 
+# Make a feature explicitly categorical (as in R)
+# This is not necessary, but can be helpful, e.g. for ints
+# For strings of np.object, this should not be necessary
+one_hot_int_cols = df.dtypes[df.dtypes == np.int].index.tolist()
+for col in one_hot_int_cols:
+    df[col] = pd.Categorical(df[col])
+
 # One-hot encoding of features: Dummy variables with pandas
 # Use drop_first=True to remove the first category and avoid multi-colinearity
 col_dummies = ['var1', 'var2']
@@ -923,3 +930,26 @@ grid.best_estimator_.named_steps['ridge_regression'].coef_
 
 # Get the model statistics/properties of each parameter combination
 pd.DataFrame(grid.cv_results_)
+
+## Cross-Validation Alternative: Use models with built-in cross-validation
+
+from sklearn.linear_model import RidgeCV, LassoCV, ElasticNetCV
+
+# Regularization parameters to test
+alphas = [0.005, 0.05, 0.1, 0.3, 1, 3, 5, 10, 15, 30, 80]
+l1_ratios = np.linspace(0.1, 0.9, 9)
+# Model definition
+model = RidgeCV(alphas=alphas, cv=4)
+model = LassoCV(alphas=alphas,
+                max_iter=5e4,
+                cv=3)
+model = ElasticNetCV(alphas=alphas, 
+                     l1_ratio=l1_ratios,
+                     max_iter=1e4)
+# Train/Fit
+model.fit(X_train, y_train)
+# Extract values
+model.alpha_
+model.coef_
+np.sqrt(mean_squared_error(y_test, model.predict(X_test))
+
