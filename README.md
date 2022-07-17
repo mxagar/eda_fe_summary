@@ -357,7 +357,9 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 	- Define a `Pipeline` with the models from which parameters need to be found/optimized (see `Pipelines` below).
 	- Instantiate and fit `GridSearchCV` with the parameters to be optimized.
 	- **Alternative**: use models with built-in cross-validation: `RidgeCV`, `LassoCV`, `ElasticNetCV`.
-- Plot model parameters to understand what's going on; often it's better than the predictions.
+- Plot model parameters to understand what's going on; often it's better than the predictions: 
+	- `importance = pd.DataFrame(model.coef_.ravel())` and the `sort_values()`.
+	- However, note that in addition to coefficient magnitude (related to importance), we should have a look at the significances, i.e., p-values. Scikit-Learn doesn't have that, but `statsmodels` does.
 - If text reports need to be saved, convert them to figures: `plt.text()`.
 
 ## Tips for Production

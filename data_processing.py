@@ -863,6 +863,8 @@ error = y_true - y_pred
 stats.probplot(error, dist="norm", plot=plt);
 
 # If Regression: Get & plot model coefficients / feature importances
+# However, note that significance p-values are missing here: in addition to large coefficients,
+# we should check their p-value; statsmodels can do that
 importance = pd.DataFrame(model.coef_.ravel()) # LinearRegression, Lasso, Ridge
 importance = pd.DataFrame(model.feature_importances_.ravel()) # RandomForestRegressor
 importance.index = df.columns
