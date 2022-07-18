@@ -17,7 +17,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 
 ### Table of Contents
 
-- [General](#general)
+- [General](#General)
 - [Data Cleaning](#Data-Cleaning)
 - [Exploratory Data Analysis](#Exploratory-Data-Analysis)
 - [Feature Engineering](#Feature-Engineering)
@@ -30,7 +30,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 - [Data Modelling](#Data-Modelling)
 - [Tips for Production](#Tips-for-Production)
 	- [Pipelines](#Pipelines)
-- [Relevant Links](#Relevant-Links)
+- [Related Links](#Related-Links)
 - [Authorship](#Authorship)
 
 ## General
@@ -213,7 +213,7 @@ List of the most important Scikit-Learn Transformers:
   - `sklearn.impute.SimpleImputer`: we define what is a missing value and specify a strategy for imputing it, e.g., repleace with the mean.
   - `sklearn.impute.IterativeImputer`: features with missing values are modelled with the other features, e.g., a regression model is built to predict the missing values.
 - [Categorical Variable Encoding](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-categorical-features)
-  - `sklearn.preprocessing.OneHotEncoder`: dummy variables of all levels (except one) in a categorical variable are created, i.e., a binary variable for each category-level.
+  - `sklearn.preprocessing.OneHotEncoder`: dummy variables of all levels (except one) in a categorical variable are created, i.e., a binary variable for each category-level. **The advantage of this again the pandas `get_dummies()` is that OneHotEncoder returns a sparse matrix, which is much more memory efficient in datasets with many features.**
   - `sklearn.preprocessing.OrdinalEncoder`: string variables are converted into ordered integers; however, be careful, because these cannot be used in scikit-learn if they do not really represent continuous variables... if that is not the case, try the `OneHotEncoder` instead.
 - [Scalers](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-scaler)
   - `sklearn.preprocessing.MinMaxScaler`: data mapped to the min-max range
@@ -349,6 +349,14 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 - Always evaluate with a test split that never was exposed to the model
 	- Regression: R2, RMSE.
 	- Classification: confusion matrix, accuracy, F1, ROC curve (AUC).
+- Bias-Variance trade-off: always consider it!
+	- Model error = bias + variance + irreducible randomness.
+	- Bias error: more simplistic model (e.g., less features), more relaxed model - **underfitting**.
+	- Variance error: more complex model (e.g., more features), model more tightly adjusted to the data-points, thus less generalizable - **overfitting**.
+	- We need to find the sweet spot: since more bias means less viariance, and vice-versa, the sweet spot is the minimum sum of both:
+		- Perform cross-validation: see how the validation split error changes as we change the model hyperparameters.
+		- If train/validation/test error high: we're probably underfitting: add features, e.g., `PolynomialFeatures`.
+		- If validation error high: we are probably overfitting; solution: regularization (`Ridge`, `Lasso`, etc.), drop features / reduce dimensons, etc.
 - **Cross-validation** and **hyperparameter tuning**:
 	- Perform a `train_test_split`, take `X_train` for cross-validation, `X_test` for final model performance
 	- Define a k-fold split: non-overlapping validation splits within the `train` subset
@@ -372,15 +380,16 @@ Software engineering for production deployments is out of the scope of this guid
 
 Thus, among others, we should do the following:
 
+- Try to use MLOps tools like [mlflow](https://www.mlflow.org/) and [wandb](https://wandb.ai/site) to track experiments and artifacts.
 - Persist any transformation objects / encodings / paramaters generated.
 - Track and persist any configuration we created.
 - Use seeds whenever any random variables is created.
 - Create python environments and use same software versions in research/production.
-	- Containers are a nice option.
-- Use `Pipelines` and pack any transformations to them. That implies:
+	- Docker containers are a nice option, or at least conda environments.
+- I we don't have access to MLOps tools like [mlflow](https://www.mlflow.org/) and [wandb](https://wandb.ai/site), use `Pipelines` and pack any transformations to them; then, these can be easily packaged and deployed. That implies:
 	- Using `sklearn` transformers/encoders instead of manually encoding anything,
 	- or `feature_engine` classes: [feature_engine](https://feature-engine.readthedocs.io/en/latest/),
-	- or creating our own functions embedded in derived classes of these, so that they can be added to a `Pipeline`.
+	- or creating our own functions embedded in derived classes of these, so that they can be added to a `Pipeline` (see above).
 - Modularize the code into functions to transfer it to python scripts.
 - Catch errors and provide a robust execution.
 - Log events.
@@ -414,10 +423,12 @@ pred = pipe.predict(X_test)
 pipe.score(X_test, y_test)
 ```
 
-## Relevant Links
+## Related Links
 
-- My notes on the [IBM Machine Learning Professional Certificate](https://www.coursera.org/professional-certificates/ibm-machine-learning) from Coursera: [machine_learning_ibm](https://github.com/mxagar/machine_learning_ibm).
-- My notes on the [Statistics with Python Specialization](https://www.coursera.org/specializations/statistics-with-python) from Coursera (University of Michigan): [statistics_with_python_coursera](https://github.com/mxagar/statistics_with_python_coursera).
+- My notes of the [IBM Machine Learning Professional Certificate](https://www.coursera.org/professional-certificates/ibm-machine-learning) from Coursera: [machine_learning_ibm](https://github.com/mxagar/machine_learning_ibm).
+- My notes of the [Statistics with Python Specialization](https://www.coursera.org/specializations/statistics-with-python) from Coursera (University of Michigan): [statistics_with_python_coursera](https://github.com/mxagar/statistics_with_python_coursera).
+- My notes of the [Udacity Data Science Nanodegree](https://www.udacity.com/course/data-scientist-nanodegree--nd025): [data_science_udacity](https://github.com/mxagar/data_science_udacity).
+- My notes of the [Udacity Machine Learning DevOps Nanodegree](https://www.udacity.com/course/machine-learning-dev-ops-engineer-nanodegree--nd0821): [mlops_udacity](https://github.com/mxagar/mlops_udacity).
 - My forked repository of the Udemy course [Deployment of Machine Learning Models](https://www.udemy.com/course/deployment-of-machine-learning-models/) by Soledad Galli and Christopher Samiullah: [deploying-machine-learning-models](https://github.com/mxagar/deploying-machine-learning-models).
 - An example where I apply some of the techniques explained here: [airbnb_data_analysis](https://github.com/mxagar/airbnb_data_analysis).
 
