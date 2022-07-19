@@ -436,7 +436,7 @@ df['v1_/_v2'] = df['v1'] / df['v2']
 df['daytime'] = pd.cut(df.hour, [0,6,12,18,24], labels=['Night','Morning','Afternoon','Evening'])
 
 # Polynomial features with sklearn
-pf = PolynomialFeatures(degree=2)
+pf = PolynomialFeatures(degree=2, include_bias=False)
 features = ['var1', 'var2']
 pf.fit(df[features])
 feat_array = pf.transform(df[features])
@@ -579,8 +579,17 @@ pca = PCA(n_components=0.95)
 X_reduced = pca.fit_transform(X)
 X_reduced.shape[1]
 
+# Define a Lasso model with a set of possible alphas, i.e., regularization strengths
+# Get with Cross-Validation the optimum alpha
+alphas = [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100]
+model = LassoCV(alphas=alphas,
+                max_iter=5e4,
+                cv=4)
+# Train/Fit auxiliary Lasso model
+model.fit(X_train, y_train)
+# Use the optimum alpha obtained with Cross-Validation
 # Set and save the seed for reproducibility
-sel_ = SelectFromModel(Lasso(alpha=0.001, random_state=42))
+sel_ = SelectFromModel(Lasso(alpha=model.alpha_, random_state=42))
 # Train Lasso model and select features
 sel_.fit(X_train, y_train)
 # List of selected features
@@ -885,7 +894,7 @@ plt.xlabel('Coefficient Value of Features')
 # that yields the optimum metric.
 # Instead of doing it manually, we can do it with GridSearchCV
 
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import GridSearchCV, KFold
 
 # Set estimator Pipeline: all necessary feature engineering steps
 # with parameters to tune + scaling + model
@@ -941,13 +950,15 @@ from sklearn.linear_model import RidgeCV, LassoCV, ElasticNetCV
 alphas = [0.005, 0.05, 0.1, 0.3, 1, 3, 5, 10, 15, 30, 80]
 l1_ratios = np.linspace(0.1, 0.9, 9)
 # Model definition
-model = RidgeCV(alphas=alphas, cv=4)
+model = RidgeCV(alphas=alphas, cv=4, random_state=0)
 model = LassoCV(alphas=alphas,
                 max_iter=5e4,
-                cv=3)
+                cv=3,
+                random_state=0)
 model = ElasticNetCV(alphas=alphas, 
                      l1_ratio=l1_ratios,
-                     max_iter=1e4)
+                     max_iter=1e4,
+                     random_state=0)
 # Train/Fit
 model.fit(X_train, y_train)
 # Extract values

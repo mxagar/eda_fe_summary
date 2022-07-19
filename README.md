@@ -174,7 +174,10 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- Multiply different features if we suspect there might be an interaction.
 	- Divide different features, if the division has a meaning.
 	- Create categorical data from continuous if that has a meaning, e.g., daytime.
-	- Try polynomial features: `PolynomialFeatures()`.
+	- Try polynomial features: `PolynomialFeatures()`:
+		- I think it makes most sense using `PolynomialFeatures()` with continuous variables, but I might be wrong.
+		- `PolynomialFeatures()` considering dummy variables could make sense to analyze interactions, but I don't see that very clearly.
+		- Apply `PolynomialFeatures()` as one of the last steps before scaling to avoid complexity in the data processing.
 	- Create deviation factors from the mean of a numeric variable in groups or categories of another categorical variable. 
 - Measure the cardinality of the categorical variables: how many catgeories they have.
 	- `data[cat_vars].nunique().sort_values(ascending=False).plot.bar(figsize=(12,5))`.
@@ -200,9 +203,9 @@ For more information on the motivation of the guide, see my [blog post](https://
 - Train/test split: perform it before scaling the variables: `train_test_split()`. ALWAYS use the seed for reproducibility!
 	- `ShuffleSplit`: if several train-test splits are required, not just one. 
 	- `StratifiedShuffleSplit`: same as before, but when we have imbalanced datasets and we'd like to maintain the label/class ratios in each split to avoid introducing bias.
-- Feature scaling: apply it if data-point distances are used in the model; fit the scaler only with the train split!
-	- `StandardScaler()`: subtract the mean and divide by the standard deviation; features are converted to standard normal viariables. Note that if dummy variables `[0,1]` passed, they are scaled, too. That should not be an issue,  but the interpretation is not as intuitive later on. Alternatives: use `MinMaxScaler()` or do not pass dummies to the scaler.
-	- `MinMaxScaler()`: a mapping with which the minimum value becomes 0, max becomes 1. This is senstive to outliers!
+- Feature scaling: apply it if data-point distances are used in the model or parameter sizes matter (regularization); **apply it always as the last feature engineering step and fit the scaler only with the train split!**
+	- `StandardScaler()`: subtract the mean and divide by the standard deviation; features are converted to standard normal viariables (e.g., if normally distributed, 99% of the values will be in a range of `[-3,3]`). Note that if dummy variables `[0,1]` passed, they are scaled, too. That should not be an issue, but the interpretation is not as intuitive later on. Alternatives: use `MinMaxScaler()` or do not pass dummies to the scaler.
+	- `MinMaxScaler()`: a mapping with which the minimum value becomes 0, max becomes 1. This is senstive to outliers! However, if we remove the outliers and the scaling is applied to the whole dataset including dummy variables, it can be a good option.
 	- `RobustScaler()`: IQR range is mapped to `[0,1]`, i.e., percentiles `25%, 75%`; thus, the scaled values go out from the `[0,1]` range.
 
 ### Scikit-Learn Transformers
