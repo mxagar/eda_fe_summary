@@ -516,8 +516,8 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, # predictive variables
     y, # target
     test_size=0.1, # portion of dataset to allocate to test set
-    random_state=42, # we are setting the seed here, ALWAYS DO IT!
-)
+    random_state=42 # we are setting the seed here, ALWAYS DO IT!
+) # We can also use the stratify argument: stratify = X[variable]
 
 # Encoding of categorical variables if target is categorical/binary
 # Loop over all categorical columns
