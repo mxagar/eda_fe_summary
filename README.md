@@ -308,6 +308,9 @@ class MeanImputer(BaseEstimator, TransformerMixin):
 	1. The effect of each variable is analyzed on the target using ANOVA or similar.
 	2. Greedy approaches: all possible feature combinations are tested (very expensive).
 	3. Lasso regularization: L1 regularization forces coefficients of less important variables to become 0; thus, we can remove them. This is the method I have normally used.
+- Multi-colinearity: detect and avoid it! In models such as linear regression the coefficients or parameters denote the effect of increasing one unit value of the associated feature while the *rest of the parameters is fixed*. If there are strong correlations (i.e., multi-colinearity), that is not true, since the parameter values are related, they move together.
+	- We can measure multi-colinearity with heatmaps of correlations `sns.heatmap(df.corr())`.
+	- Consider removing variables that are strongly correlated with other variables.
 - We can measure sparsity of information with `PCA()`; if less variables explain most of the variance, we could drop some.
 - Typical method: Select variables with L1 regularized regression (lasso): `SelectFromModel(Lasso())`.
 - Use `sns.pairplot()` or similar to check multi-colinearity; correlated features are not good.
