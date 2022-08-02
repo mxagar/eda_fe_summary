@@ -51,7 +51,10 @@ from sklearn.decomposition import PCA
 from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+
 from sklearn.metrics import classification_report, confusion_matrix, plot_roc_curve
+from sklearn.metrics import precision_recall_fscore_support as classification_score
+from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score
 
 # Encoding with Scikit-Learn
 from sklearn import preprocessing # LabelEncoder, LabelBinarizer, OneHotEncoder
@@ -340,6 +343,31 @@ sns.violinplot(x="gender", y="age", data=df)
 sns.heatmap(df.corr(), annot=True, cmap='RdYlGn', fmt=".2f")
 df.corr()['target'].sort_values(ascending=True).plot(kind='bar')
 
+# Correlations if we have many numerical variables: we can't visualize the matrix
+corr_values = df[numerical_cols].corr()
+# tril_indices_from returns a tuple of 2 arrays:
+# the arrays contain the indices of the diagonal + lower triangle of the matrix:
+# ([0,1,...],[0,0,...])
+tril_index = np.tril_indices_from(corr_values)
+# Make the unused values NaNs
+# NaN values are automatically dropped below with stack()
+for coord in zip(*tril_index):
+    corr_values.iloc[coord[0], coord[1]] = np.NaN
+# Stack the data and convert to a data frame
+corr_values = (corr_values
+               .stack() # multi-index stacking of a matrix: [m1:(m11, m12,...), m2:(m21, m22,...), ...]
+               .to_frame() # convert in dataframe
+               .reset_index() # new index
+               .rename(columns={'level_0':'feature1', # new column names
+                                'level_1':'feature2',
+                                0:'correlation'}))
+# Get the absolute values for sorting
+corr_values['abs_correlation'] = corr_values.correlation.abs()
+# Plot
+corr_values.abs_correlation.hist(bins=50, figsize=(12, 8))
+# Query the most highly correlated values
+corr_values.sort_values('correlation', ascending=False).query('abs_correlation>0.8')
+
 # Frequency tables: Stratify & Group
 # Recipe: groupby(), value_counts(), normalize with apply().
 # See also: pd.crosstab()
@@ -476,7 +504,11 @@ for var in skewed:
     tmp.plot(kind="barh", y="mean", legend=False,
              xerr="std", title="Sale Price", color='green')
 
-# Encoding of the target classes
+# Encoding of the target classes: LabelEncoder(), LabelBinarizer()
+# LabelEncoder() converts class strings into integers,
+# necessary for target values in multi-class classification
+# LabelBinarizer() converts integer class values into one-hot encoded arrays
+# necessary for multi-class target values if ROC needs to be computed
 from sklearn import preprocessing
 # Encode names as 0...(n-1) class numbers
 le = preprocessing.LabelEncoder()
@@ -484,6 +516,7 @@ le.fit(["paris", "paris", "tokyo", "amsterdam"])
 list(le.classes_) # ['amsterdam', 'paris', 'tokyo']
 le.transform(["tokyo", "tokyo", "paris"]) # [2, 2, 1]
 list(le.inverse_transform([2, 2, 1])) # ['tokyo', 'tokyo', 'paris']
+le.classes_ # we get the class names
 # Encode class numbers as binary vectors
 lb = preprocessing.LabelBinarizer()
 lb.fit([1, 2, 6, 4, 2])
@@ -517,7 +550,27 @@ X_train, X_test, y_train, y_test = train_test_split(
     y, # target
     test_size=0.1, # portion of dataset to allocate to test set
     random_state=42 # we are setting the seed here, ALWAYS DO IT!
+    # stratify=y # if we want to keep class ratios in splits
 ) # We can also use the stratify argument: stratify = X[variable]
+
+# Stratified splits for classification 
+# A more advanced way of creating splits with constant class ratios
+# StratifiedShuffleSplit allows to split the dataset into the desired numbers of train-test subsets
+# while still maintaining the ratio of the predicted classes in the original/complete dataset
+from sklearn.model_selection import StratifiedShuffleSplit
+strat_shuf_split = StratifiedShuffleSplit(n_splits=1, # 1 split: 1 train-test
+                                          test_size=0.3, 
+                                          random_state=42)
+# Get the split indexes
+train_idx, test_idx = next(strat_shuf_split.split(X=df[feature_cols], y=df[target]))
+# Create the dataframes using the obtained split indices
+X_train = df.loc[train_idx, feature_cols]
+y_train = df.loc[train_idx, target]
+X_test  = df.loc[test_idx, feature_cols]
+y_test  = df.loc[test_idx, target]
+# Always check that the ratios are OK, ie., very similar for all subsets
+y_train.value_counts(normalize=True)
+y_test.value_counts(normalize=True)
 
 # Encoding of categorical variables if target is categorical/binary
 # Loop over all categorical columns
@@ -776,16 +829,26 @@ print('Sample Size: %.3f' % result)
 ##### -- Data Modelling
 ##### -- 
 
+### --- Summary of the most important models
+
 # Choose and instantiate the model
-from sklearn.linear_model import LinearRegression, Lasso, Ridge
+from sklearn.linear_model import LinearRegression, Lasso, Ridge, LassoCV, RidgeCV
 model = LinearRegression()
-model = Lasso(alpha=0.001, random_state=0)
-model = Ridge(alpha=0.001, random_state=0)
+# Regularized: we can also do cross-validation, see below: LassoCV, RidgeCV, etc.
+model = Lasso(alpha=0.001, random_state=0) # alpha: regularization strength
+model = Ridge(alpha=0.001, random_state=0) 
 model.fit(X_train, y_train)
 model.coef_
 # -
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 model = LogisticRegression()
+# Although logistic regression is binary, it is generalized in Scikit-Learn
+# and it can take several classes; the target needs to be LabelEncoded.
+# If we use the solver 'liblinear', the 'one-vs-rest' approach is used,
+# with other solvers, a multinomial approach can be used.
+# Also, we can use the cross-validation version to detect the optimum C value
+model = LogisticRegression(C=1.0, penalty='l1', solver='liblinear')
+model = LogisticRegression(C=1.0, penalty='l2', solver='liblinear')
 # -
 from sklearn.neighbors import KNeighborsClassifier
 model = KNeighborsClassifier(n_neighbors=1) # test in a loop best k = n_neighbors
@@ -835,16 +898,10 @@ model.fit(X_train, np.ravel(y_train))
 
 # Predict 
 pred_train = model.predict(X_train)
-pred_test = model.predict(X_test)
+pred_test = model.predict(X_test) # if classification, LabelEncoded target integer
+prob_test = model.predict_proba(X_test).max(axis=1) # if classification, probability of selected class
 
-# Evaluate; consider whether the targe was transformed or not
-# If Regression: MSE, R2
-print('MAE: ', mean_absolute_error(np.exp(y_test), np.exp(pred_test)))
-print('RMSE: ', mean_squared_error(np.exp(y_test), np.exp(pred_test), squared=False))
-print('R2', r2_score(np.exp(y_test), np.exp(pred_test)))
-# If Classification: confusion matrix, accuracy, precision, recall, F1
-print(confusion_matrix(y_test,pred_test))
-print(classification_report(y_test,pred_test))
+### --- Evaluation and Interpretation: General
 
 # If we want to convert text tables as figure (for saving)
 plt.figure(figsize=(5, 5))
@@ -852,8 +909,40 @@ plt.text(0.01, 1.25, str('Table Title'), {'fontsize': 10}, fontproperties = 'mon
 plt.text(0.01, 0.05, str(classification_report(y_train, y_pred)), {'fontsize': 10}, fontproperties = 'monospace')
 plt.axis('off')
 
-# If classification: ROC curve (& AUC)
+### --- Classification: Evaluation and Interpretation
+
+# Precision, recall, f-score, support:
+# For multiple classes, there is one value for each class
+# However, we can compute the weighted average to get a global value with average='weighted'.
+# Then, support doesn't make sense.
+# Without the average parameter, we get arrays of six values for each metric,
+# one item in each array for each class.
+precision, recall, fscore, _ = score(y_test, y_pred[lab], average='weighted')
+# Accuracy is for the complete dataset (ie., all classes).
+accuracy = accuracy_score(y_test, y_pred[lab])
+
+# Confusion matrix; classification report: accuracy, precision, recall, F1
+print(confusion_matrix(y_test,pred_test))
+print(classification_report(y_test,pred_test))
+sns.heatmap(confusion_matrix(y_test,pred_test), annot=True);
+
+# ROC-AUC scores can be calculated by binarizing the data
+# label_binarize performs a one-hot encoding,
+# so from an integer class we get an array of one 1 and the rest 0s.
+# This is necessary for computing the ROC curve, since the target needs to be binary!
+# Again, to get a single ROC-AUC from the 6 classes, we pass average='weighted'
+auc = roc_auc_score(label_binarize(y_test, classes=[0,1,2,3,4,5]),
+          label_binarize(y_pred[lab], classes=[0,1,2,3,4,5]), 
+          average='weighted')
 model_roc_plot = plot_roc_curve(model, X_test, y_test) # ROC curve plotted and AUC computed
+
+### --- Regression: Evaluation and Interpretation
+
+# Evaluate; consider whether the targe was transformed or not
+# If Regression: MSE, R2
+print('MAE: ', mean_absolute_error(np.exp(y_test), np.exp(pred_test)))
+print('RMSE: ', mean_squared_error(np.exp(y_test), np.exp(pred_test), squared=False))
+print('R2', r2_score(np.exp(y_test), np.exp(pred_test)))
 
 # If Regression: Plot True y vs. Predicted y
 plt.figure(figsize=(8,8))
@@ -888,7 +977,7 @@ color_list = ['b' if el > 0 else 'r' for el in [importance['plus'].iloc[i] for i
 importance['coef'][-top_features:].plot(kind='barh',color=color_list[-top_features:])
 plt.xlabel('Coefficient Value of Features')
 
-## CROSS-VALIDATION: Hyperparameter Tuning
+### --- CROSS-VALIDATION: Hyperparameter Tuning
 
 # We can loop across different parameter values and find the set
 # that yields the optimum metric.

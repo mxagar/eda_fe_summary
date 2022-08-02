@@ -193,16 +193,19 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- Binarization: manually with `apply()`, `np.where()` or `sklearn.preprocessing.LabelBinarizer`.
 		- Usually very skewed variables are binarized.
 			- We can check the predictive strength of binarized variables with bar plots and T tests: we binarize and compute the mean & std. of the target according to the binary groups.
-		- `LabelBinarizer`: `fit([1, 2, 6, 4, 2]) -> transform([1, 6]): [[1, 0, 0, 0], [0, 0, 0, 1]]`.
+		- `LabelBinarizer` one-hot encodes classes defined as integers: `fit([1, 2, 6, 4, 2]) -> transform([1, 6]): [[1, 0, 0, 0], [0, 0, 0, 1]]`.
 		- Sometimes it is necessary to apply this kind of multi-class binarization to the **target**.
-	- Also useful for the **target**: `sklearn.preprocessing.LabelEncoder`: `fit(["paris", "paris", "tokyo", "amsterdam"]) -> transform(["tokyo", "paris"]): [2, 1]`.
+	- Also useful for the **target**, `LabelEncoder`: converts class strings into integers, necessary for target values in multi-class classification.
+		- `fit(["paris", "paris", "tokyo", "amsterdam"]) -> transform(["tokyo", "paris"]): [2, 1]`.
+		- It is common to use `LabelEncoder` first and then `LabelBinarizer`.
 	- Ordinal encoding: convert ordinal categories to `0,1,2,...`; but be careful: we're assuming the distance from one level to the next is the same -- Is it really so? Maybe it's better applying one-hot encoding?
 		- `sklearn` tools: `OrdinalEncoder`, `DictVectorizer`.
 	- There are many more tools: [Preprocessing categorical features](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-categorical-features)
 	- Weight of evidence: If the target is binary and we want to encode categorical features, we can store the target ratios associated to each feature category level.
 - Train/test split: perform it before scaling the variables: `train_test_split()`. ALWAYS use the seed for reproducibility!
+	- If we have a classification problem and we want to maintain the class ratios in the splits, we can use the parameter `stratify=y`; `y` needs to be `LabelEncoded`.
 	- `ShuffleSplit`: if several train-test splits are required, not just one. 
-	- `StratifiedShuffleSplit`: same as before, but when we have imbalanced datasets and we'd like to maintain the label/class ratios in each split to avoid introducing bias.
+	- `StratifiedShuffleSplit`: same as before, but when we have imbalanced datasets and we'd like to maintain the label/class ratios in each split to avoid introducing bias; this a more advanced way than using the `stratify` parameter.
 - Feature scaling: apply it if data-point distances are used in the model or parameter sizes matter (regularization); **apply it always as the last feature engineering step and fit the scaler only with the train split!**
 	- `StandardScaler()`: subtract the mean and divide by the standard deviation; features are converted to standard normal viariables (e.g., if normally distributed, 99% of the values will be in a range of `[-3,3]`). Note that if dummy variables `[0,1]` passed, they are scaled, too. That should not be an issue, but the interpretation is not as intuitive later on. Alternatives: use `MinMaxScaler()` or do not pass dummies to the scaler.
 	- `MinMaxScaler()`: a mapping with which the minimum value becomes 0, max becomes 1. This is senstive to outliers! However, if we remove the outliers and the scaling is applied to the whole dataset including dummy variables, it can be a good option.
@@ -309,7 +312,7 @@ class MeanImputer(BaseEstimator, TransformerMixin):
 	2. Greedy approaches: all possible feature combinations are tested (very expensive).
 	3. Lasso regularization: L1 regularization forces coefficients of less important variables to become 0; thus, we can remove them. This is the method I have normally used.
 - Multi-colinearity: detect and avoid it! In models such as linear regression the coefficients or parameters denote the effect of increasing one unit value of the associated feature while the *rest of the parameters is fixed*. If there are strong correlations (i.e., multi-colinearity), that is not true, since the parameter values are related, they move together.
-	- We can measure multi-colinearity with heatmaps of correlations `sns.heatmap(df.corr())`.
+	- We can measure multi-colinearity with heatmaps of correlations `sns.heatmap(df.corr())`; if we have too many variables to visualize, take the upper triangle of the correlation matrix with `np.tril_indices_from()` and `stack()` them into a multi-indexed dataframe. Then, `query()` the pairs with high absolute correlation values.
 	- Consider removing variables that are strongly correlated with other variables.
 - We can measure sparsity of information with `PCA()`; if less variables explain most of the variance, we could drop some.
 - Typical method: Select variables with L1 regularized regression (lasso): `SelectFromModel(Lasso())`.
@@ -348,13 +351,19 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 - Most common approaches to start with tabular data:
 	- Supervised learning:
 		- Regression (focussing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
-		- Classification: `RandomForestClassifier`.
+		- Classification: `LogisticRegression` (`penalty` for regularization), `RandomForestClassifier`.
 	- Unsupervised learning:
 		- Clustering: `KMeans`.
 		- Dimensionality reduction: `PCA`.
 - Always evaluate with a test split that never was exposed to the model
 	- Regression: R2, RMSE.
 	- Classification: confusion matrix, accuracy, F1, ROC curve (AUC).
+- Classification problems / models:
+	- Always maintain class ratios in different splits with stratified groupings: `stratify`, `StratifiedShuffleSplit`
+	- Usually all classification models can be used as regression models!
+	- Binary classifiers are already generalized to be multi-class classifiers.
+	- A nice example of how to stack the results of several multi-class problems: [03_Classification_IBM.md](https://github.com/mxagar/machine_learning_ibm/blob/main/03_Classification/03_Classification_IBM.md) `/ 1.9 Python Lab: Human Activity`.
+	- Always check which classes get mixed in the confusion matrix: Why are they similar? How could we differentiate them? Do we need more data?
 - Bias-Variance trade-off: always consider it!
 	- Model error = bias + variance + irreducible randomness.
 	- Bias error: more simplistic model (e.g., less features), more relaxed model - **underfitting**.
