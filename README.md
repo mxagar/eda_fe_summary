@@ -361,7 +361,7 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 - Classification problems / models:
 	- Always maintain class ratios in different splits with stratified groupings: `stratify`, `StratifiedShuffleSplit`
 	- Usually all classification models can be used as regression models!
-	- Binary classifiers are already generalized to be multi-class classifiers.
+	- Binary classifiers are already generalized to be multi-class classifiers. Depending on the solver, we have a *one-vs-rest* approach or a *multinomial* approach.
 	- A nice example of how to stack the results of several multi-class problems: [03_Classification_IBM.md](https://github.com/mxagar/machine_learning_ibm/blob/main/03_Classification/03_Classification_IBM.md) `/ 1.9 Python Lab: Human Activity`.
 	- Always check which classes get mixed in the confusion matrix: Why are they similar? How could we differentiate them? Do we need more data?
 - Bias-Variance trade-off: always consider it!

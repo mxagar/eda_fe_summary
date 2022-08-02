@@ -849,6 +849,7 @@ model = LogisticRegression()
 # Also, we can use the cross-validation version to detect the optimum C value
 model = LogisticRegression(C=1.0, penalty='l1', solver='liblinear')
 model = LogisticRegression(C=1.0, penalty='l2', solver='liblinear')
+model = LogisticRegression(random_state=101, penalty='l2', multi_class='multinomial', solver='lbfgs', max_iter = 1000)
 # -
 from sklearn.neighbors import KNeighborsClassifier
 model = KNeighborsClassifier(n_neighbors=1) # test in a loop best k = n_neighbors
