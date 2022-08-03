@@ -27,7 +27,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- Classes derived from `sklearn`
 - [Feature Selection](#Feature-Selection)
 - [Hypothesis Tests](#Hypothesis-Tests)
-- [Data Modelling](#Data-Modelling)
+- [Data Modelling and Evaluation](#Data-Modelling-and-Evaluation)
 - [Tips for Production](#Tips-for-Production)
 	- [Pipelines](#Pipelines)
 - [Related Links](#Related-Links)
@@ -77,13 +77,13 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- We can mask the data: create a category for missing values, in case it leads to insights.
 	- `dropna()` rows if several fields missing or missing field is key (e.g., target).
 	- `drop()` columns if many (> 20-30%) values are missing. 
-	- Impute the missing field/column with `fillna()` if few (< 10%) rows missing: `mean()`, `meadian()`, `mode()`.
+	- Impute the missing field/column with `fillna()` if few (< 10%) rows missing: `mean()`, `median()`, `mode()`.
 	- More advanced:
 		- Predict values with a model.
 		- Use k-NN to impute values of similar data-points.
 - Detect and handle outliers:
 	- Linear models are shifted towards the outliers!
-	- Keep in mind the empricial rule of 68-95-99.7 (1-2-3 std. dev.).
+	- Keep in mind the empirical rule of 68-95-99.7 (1-2-3 std. dev.).
 	- Compute `stats.zscore()` to check how many std. deviations from the mean; often Z > 3 is considered an outlier.
 	- Histogram plots: `sns.histplot()`.
 	- Box plots: `sns.boxplot()`.
@@ -93,7 +93,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- Drop outliers? Only if we think they are not representative.
 	- Do transformations fix the `skew()`? `np.log()`, `np.sqrt()`, `stats.boxcox()`, `stats.yeojohnson()`.
 		- Usually a absolute skewness larger than 0.75 requires a transformation (feature engineering).
-- Temporal data / dates or datetime: they need to be converted with `to_datetime()` and the we need to compute the time (in days, months, years) to a reference date (e.g., today).
+- Temporal data / dates or date-time: they need to be converted with `to_datetime()` and the we need to compute the time (in days, months, years) to a reference date (e.g., today).
 
 
 ## Exploratory Data Analysis
@@ -146,10 +146,10 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- Boxplots -> try `sns.swarmplot()`: boxes are replaced by point swarms.
 	- Boxplots -> try `sns.violinplot()`: box width changed.
 	- Scatterplots -> try `sns.lmplot()` or `sns.reglot()`: linear regression is added to the scatterplot.
-	- Scatterplots -> try `sns.jointplot()`: density distribution isolines of a pair of quantitative variables.
+	- Scatterplots -> try `sns.jointplot()`: density distribution iso-lines of a pair of quantitative variables.
 - We can get a handle of any plot and set properties to is later: `bp = sns.boxplot(); bp.set_xlabel()`.
 - Larger group plots:
-	- `sns.pairplot()`: scatterplots/histograms of quantitative varaibles in a matrix; select variables if many.
+	- `sns.pairplot()`: scatterplots/histograms of quantitative variables in a matrix; select variables if many.
 	- `sns.FacetGrid()`: create a grid according to classes and map plot types and variables.
 
 
@@ -163,7 +163,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- If `hist()` / `skew()` / `normalitytest()` don't look good, try power transformations, but remember saving their parameters and make sure we have an easi inverse function:
 			- Box-Cox: generalized power transformation which usually requires `x > 0`: `boxcox = (x^lambda + 1)/lambda`.
 			- Yeo-Johnson: more sophisticated, piece-wise - better results, but more difficult to invert & interpret.
-	- Target: although it is not necessary for it to be normal, nomal targets yield better R2 values.
+	- Target: although it is not necessary for it to be normal, normal targets yield better R2 values.
 		- Often the logarithm is applied: `df[col] = df[col].apply(np.log1p)`.
 		- That makes undoing the transformation very easy: `np.exp(y_pred)`.
 		- However, check if power transformations are better suited (e.g., `boxcox`, `yeojohnson`); if we use them we need to save the params/transformer and make sure we know how to invert the transformation!
@@ -179,7 +179,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- `PolynomialFeatures()` considering dummy variables could make sense to analyze interactions, but I don't see that very clearly.
 		- Apply `PolynomialFeatures()` as one of the last steps before scaling to avoid complexity in the data processing.
 	- Create deviation factors from the mean of a numeric variable in groups or categories of another categorical variable. 
-- Measure the cardinality of the categorical variables: how many catgeories they have.
+- Measure the cardinality of the categorical variables: how many categories they have.
 	- `data[cat_vars].nunique().sort_values(ascending=False).plot.bar(figsize=(12,5))`.
 	- Tree-based models overfit if we have
 		- many categories,
@@ -207,8 +207,8 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- `ShuffleSplit`: if several train-test splits are required, not just one. 
 	- `StratifiedShuffleSplit`: same as before, but when we have imbalanced datasets and we'd like to maintain the label/class ratios in each split to avoid introducing bias; this a more advanced way than using the `stratify` parameter.
 - Feature scaling: apply it if data-point distances are used in the model or parameter sizes matter (regularization); **apply it always as the last feature engineering step and fit the scaler only with the train split!**
-	- `StandardScaler()`: subtract the mean and divide by the standard deviation; features are converted to standard normal viariables (e.g., if normally distributed, 99% of the values will be in a range of `[-3,3]`). Note that if dummy variables `[0,1]` passed, they are scaled, too. That should not be an issue, but the interpretation is not as intuitive later on. Alternatives: use `MinMaxScaler()` or do not pass dummies to the scaler.
-	- `MinMaxScaler()`: a mapping with which the minimum value becomes 0, max becomes 1. This is senstive to outliers! However, if we remove the outliers and the scaling is applied to the whole dataset including dummy variables, it can be a good option.
+	- `StandardScaler()`: subtract the mean and divide by the standard deviation; features are converted to standard normal variables (e.g., if normally distributed, 99% of the values will be in a range of `[-3,3]`). Note that if dummy variables `[0,1]` passed, they are scaled, too. That should not be an issue, but the interpretation is not as intuitive later on. Alternatives: use `MinMaxScaler()` or do not pass dummies to the scaler.
+	- `MinMaxScaler()`: a mapping with which the minimum value becomes 0, max becomes 1. This is sensitive to outliers! However, if we remove the outliers and the scaling is applied to the whole dataset including dummy variables, it can be a good option.
 	- `RobustScaler()`: IQR range is mapped to `[0,1]`, i.e., percentiles `25%, 75%`; thus, the scaled values go out from the `[0,1]` range.
 
 ### Scikit-Learn Transformers
@@ -216,14 +216,14 @@ For more information on the motivation of the guide, see my [blog post](https://
 List of the most important Scikit-Learn Transformers:
 
 - [Missing data imputation](https://scikit-learn.org/stable/modules/impute.html#impute)
-  - `sklearn.impute.SimpleImputer`: we define what is a missing value and specify a strategy for imputing it, e.g., repleace with the mean.
-  - `sklearn.impute.IterativeImputer`: features with missing values are modelled with the other features, e.g., a regression model is built to predict the missing values.
+  - `sklearn.impute.SimpleImputer`: we define what is a missing value and specify a strategy for imputing it, e.g., replace with the mean.
+  - `sklearn.impute.IterativeImputer`: features with missing values are modeled with the other features, e.g., a regression model is built to predict the missing values.
 - [Categorical Variable Encoding](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-categorical-features)
   - `sklearn.preprocessing.OneHotEncoder`: dummy variables of all levels (except one) in a categorical variable are created, i.e., a binary variable for each category-level. **The advantage of this again the pandas `get_dummies()` is that OneHotEncoder returns a sparse matrix, which is much more memory efficient in datasets with many features.**
   - `sklearn.preprocessing.OrdinalEncoder`: string variables are converted into ordered integers; however, be careful, because these cannot be used in scikit-learn if they do not really represent continuous variables... if that is not the case, try the `OneHotEncoder` instead.
 - [Scalers](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-scaler)
   - `sklearn.preprocessing.MinMaxScaler`: data mapped to the min-max range
-  - `sklearn.preprocessing.StandardScaler`: substract mean and divide by standard deviation
+  - `sklearn.preprocessing.StandardScaler`: subtract mean and divide by standard deviation
   - `sklearn.preprocessing.RobustScaler`: scaling with the IQR done
   - ...
 - [Discretisation](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-discretization)
@@ -235,7 +235,7 @@ List of the most important Scikit-Learn Transformers:
 - [Variable Combination](https://scikit-learn.org/stable/modules/preprocessing.html#polynomial-features)
   - `sklearn.preprocessing.PolynomialFeatures`: given a degree d, obtain polynomial features up to the degree: x_1, x_2, d=2 -> x_1, x_2, x_1*x_2, x_1^2, x_2^2
 - [Text Vectorization](https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction)
-  - `sklearn.feature_extraction.text.CountVectorizer`: create a vocabulary of the corpus and pupulate the document-term matix `document x word` with count values.
+  - `sklearn.feature_extraction.text.CountVectorizer`: create a vocabulary of the corpus and populate the document-term matrix `document x word` with count values.
   - `sklearn.feature_extraction.text.TfidfTransformer`: create the document-term matrix by scaling with in-document an in-corpus frequencies.
 
 ### Creation of Transformer Classes
@@ -344,26 +344,36 @@ class MeanImputer(BaseEstimator, TransformerMixin):
 	- If assumptions broken, consider equivalent parametric tests.
 	- Post-hoc tests when >2 levels (e.g., after ANOVA): apply Bonferroni correction if T tests used: `alpha <- alpha / num_tests`.
 
-## Data Modelling
+## Data Modelling and Evaluation
 
 Data modelling is out of the scope of this guide, because the goal is to focus on the data processing and analysis part prior to creating models. However, some basic modelling steps are compiled, since they often provide feedback for new iterations in the data processing.
 
 - Most common approaches to start with tabular data:
 	- Supervised learning:
-		- Regression (focussing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
+		- Regression (focusing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
 		- Classification: `LogisticRegression` (`penalty` for regularization), `RandomForestClassifier`.
 	- Unsupervised learning:
 		- Clustering: `KMeans`.
 		- Dimensionality reduction: `PCA`.
 - Always evaluate with a test split that never was exposed to the model
 	- Regression: R2, RMSE.
-	- Classification: confusion matrix, accuracy, F1, ROC curve (AUC).
+	- Classification: confusion matrix, accuracy, precision, recall, F1, ROC curve (AUC), Precision-Recall curve (for unbalanced classes).
+		- Confusion matrix: `Real (Positive, Negative) x Predicted (Positive, Negative)`
+		- Accuracy: diagonal / all 4 cells = `(TP + TN) / (TP + FP + FN + TN)`
+		- Precision (of Predicted Positives) = `TP / (TP + FP)` 
+		- Recall or Sensitivity (wrt. Real Positives) = `TP / (TP + FN)`
+		- Specificity: Precision for Negatives = `TN / (FP + TN)`
+		- F1: harmonic mean between precision and recall; it is a nice trade-off between precision and recall, thus, a metric which is recommend by default: `F1 = 2 *(Precision*Recall)/(Precision+Recall)`
+		- ROC curve
+			- True positive rate = Sensitivity = Recall
+			- False positive rate = 1 - Specificity
 - Classification problems / models:
 	- Always maintain class ratios in different splits with stratified groupings: `stratify`, `StratifiedShuffleSplit`
 	- Usually all classification models can be used as regression models!
 	- Binary classifiers are already generalized to be multi-class classifiers. Depending on the solver, we have a *one-vs-rest* approach or a *multinomial* approach.
 	- A nice example of how to stack the results of several multi-class problems: [03_Classification_IBM.md](https://github.com/mxagar/machine_learning_ibm/blob/main/03_Classification/03_Classification_IBM.md) `/ 1.9 Python Lab: Human Activity`.
 	- Always check which classes get mixed in the confusion matrix: Why are they similar? How could we differentiate them? Do we need more data?
+	- For unbalanced datasets, the Precision-Recall curve is a good metric.
 - Bias-Variance trade-off: always consider it!
 	- Model error = bias + variance + irreducible randomness.
 	- Bias error: more simplistic model (e.g., less features), more relaxed model - **underfitting**.
@@ -371,7 +381,7 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 	- We need to find the sweet spot: since more bias means less viariance, and vice-versa, the sweet spot is the minimum sum of both:
 		- Perform cross-validation: see how the validation split error changes as we change the model hyperparameters.
 		- If train/validation/test error high: we're probably underfitting: add features, e.g., `PolynomialFeatures`.
-		- If validation error high: we are probably overfitting; solution: regularization (`Ridge`, `Lasso`, etc.), drop features / reduce dimensons, etc.
+		- If validation error high: we are probably overfitting; solution: regularization (`Ridge`, `Lasso`, etc.), drop features / reduce dimensions, etc.
 - **Cross-validation** and **hyperparameter tuning**:
 	- Perform a `train_test_split`, take `X_train` for cross-validation, `X_test` for final model performance
 	- Define a k-fold split: non-overlapping validation splits within the `train` subset
@@ -396,7 +406,7 @@ Software engineering for production deployments is out of the scope of this guid
 Thus, among others, we should do the following:
 
 - Try to use MLOps tools like [mlflow](https://www.mlflow.org/) and [wandb](https://wandb.ai/site) to track experiments and artifacts.
-- Persist any transformation objects / encodings / paramaters generated.
+- Persist any transformation objects / encodings / parameters generated.
 - Track and persist any configuration we created.
 - Use seeds whenever any random variables is created.
 - Create python environments and use same software versions in research/production.
