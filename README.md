@@ -163,13 +163,14 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- If `hist()` / `skew()` / `normalitytest()` don't look good, try power transformations, but remember saving their parameters and make sure we have an easi inverse function:
 			- Box-Cox: generalized power transformation which usually requires `x > 0`: `boxcox = (x^lambda + 1)/lambda`.
 			- Yeo-Johnson: more sophisticated, piece-wise - better results, but more difficult to invert & interpret.
+			- We can encode/transform single columns! Just pass the single column to the encoder/transformer.
 	- Target: although it is not necessary for it to be normal, normal targets yield better R2 values.
 		- Often the logarithm is applied: `df[col] = df[col].apply(np.log1p)`.
 		- That makes undoing the transformation very easy: `np.exp(y_pred)`.
 		- However, check if power transformations are better suited (e.g., `boxcox`, `yeojohnson`); if we use them we need to save the params/transformer and make sure we know how to invert the transformation!
 	- Predictor / independent variables:
 		- `scipy` or `sklearn` can be used for power transformations, e.g., `boxcox`, `yeojohnson`.
-		- We can discretize very skewed variables, i.e., we convert then into categorical: we transform the distributions into histograms in which bins are defined as equal width/frequency. That way, each value is assigned the bin number. Additionally, see binarization below.
+		- We can discretize very skewed variables, i.e., we convert then into categorical: we transform the distributions into histograms in which bins are defined as equal width/frequency. That way, each value is assigned the bin number. Try `pd.cut()`. Additionally, see binarization below.
 - Extract / create new features, more descriptive:
 	- Multiply different features if we suspect there might be an interaction.
 	- Divide different features, if the division has a meaning.
@@ -186,6 +187,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- rare labels.
 	- Replace categorical levels with few counts (rare) with `'other'`.
 - Categorical feature encoding:
+	- Note: we can encode single columns! Just pass the single column to the encoder.
 	- One-hot encoding / dummy variables: `get_dummies()`; use `drop_first=True` to avoid multi-colinearity issues!
 		- Alternative: `sklearn.preprocessing.OneHotEncoder`.
 		- In general, `sklearn` encoders are objects that can be saved and have attributes and methods: `classes_`, `transform()`, `inverse_transform()`, etc.
@@ -200,6 +202,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- It is common to use `LabelEncoder` first and then `LabelBinarizer`.
 	- Ordinal encoding: convert ordinal categories to `0,1,2,...`; but be careful: we're assuming the distance from one level to the next is the same -- Is it really so? Maybe it's better applying one-hot encoding?
 		- `sklearn` tools: `OrdinalEncoder`, `DictVectorizer`.
+	- If a distribution of a numerical variable is very skewed or irregular, we can discretize it  with `pd.cut()`.
 	- There are many more tools: [Preprocessing categorical features](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-categorical-features)
 	- Weight of evidence: If the target is binary and we want to encode categorical features, we can store the target ratios associated to each feature category level.
 - Train/test split: perform it before scaling the variables: `train_test_split()`. ALWAYS use the seed for reproducibility!
@@ -351,7 +354,12 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 - Most common approaches to start with tabular data:
 	- Supervised learning:
 		- Regression (focusing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
-		- Classification: `LogisticRegression` (`penalty` for regularization), `RandomForestClassifier`.
+		- Classification: **note: in `sklearn` classification models have a regression class, too!**
+			- `LogisticRegression` (use `penalty` for regularization): not only for binary classification in Scikit-Learn; nice log-odds interpretation of coefficients.
+			- `KNearestNeighbors`
+				- Easy interpretation of similar points, but complete dataset is used for inference, thus small and scaled datasets should be used (e.g., `10000 x 50`).
+				- Use the elbow method to deduce the optimum `K`: try different `K` values in a loop and register the error metric with the test/validation split; then take the `K` of the best metric.
+			- `RandomForestClassifier`
 	- Unsupervised learning:
 		- Clustering: `KMeans`.
 		- Dimensionality reduction: `PCA`.
@@ -359,14 +367,18 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 	- Regression: R2, RMSE.
 	- Classification: confusion matrix, accuracy, precision, recall, F1, ROC curve (AUC), Precision-Recall curve (for unbalanced classes).
 		- Confusion matrix: `Real (Positive, Negative) x Predicted (Positive, Negative)`
-		- Accuracy: diagonal / all 4 cells = `(TP + TN) / (TP + FP + FN + TN)`
-		- Precision (of Predicted Positives) = `TP / (TP + FP)` 
-		- Recall or Sensitivity (wrt. Real Positives) = `TP / (TP + FN)`
-		- Specificity: Precision for Negatives = `TN / (FP + TN)`
+		- Accuracy (bad metric, unless equal number of class instances): diagonal / all 4 cells = `(TP + TN) / (TP + FP + FN + TN)`
+		- **Precision** (of Predicted Positives) of each class = `TP / (TP + FP)`
+			- Interpretation: do we wan to assure that our predicted positives are correct?
+		- **Recall** or Sensitivity (wrt. Real Positives) of each class = `TP / (TP + FN)`
+			- Interpretation: do we want to capture all the true positives?
+		- Specificity of each class: Precision for Negatives = `TN / (FP + TN)`
 		- F1: harmonic mean between precision and recall; it is a nice trade-off between precision and recall, thus, a metric which is recommend by default: `F1 = 2 *(Precision*Recall)/(Precision+Recall)`
-		- ROC curve
+		- ROC curve (binary classifications)
 			- True positive rate = Sensitivity = Recall
 			- False positive rate = 1 - Specificity
+			- AUC: Area Under the Curve: 0.5 random guess (triangle) - 1 perfect model (square)
+		- Alternative to ROC: Precision-Recall curve; usually descending.
 - Classification problems / models:
 	- Always maintain class ratios in different splits with stratified groupings: `stratify`, `StratifiedShuffleSplit`
 	- Usually all classification models can be used as regression models!

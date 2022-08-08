@@ -93,6 +93,12 @@ numerical_cols = list(df.select_dtypes(include = ['float', 'int']))
 # Other ways:
 categorical_cols = [var for var in df.columns if df[var].dtype == 'O']
 
+# Create a dataframe which records the number of unique variables values
+# for each variable
+df_uniques = pd.DataFrame([[i, len(df[i].unique())] for i in df.columns], columns=['Variable', 'Unique Values']).set_index('Variable')
+binary_variables = list(df_uniques[df_uniques['Unique Values'] == 2].index)
+categorical_variables = list(df_uniques[(6 >= df_uniques['Unique Values']) & (df_uniques['Unique Values'] > 2)].index)
+
 # Cast a variable
 df['var'] = df['var'].astype('O')
 
@@ -461,6 +467,7 @@ df['v1_x_v2'] = df['v1'] * df['v2']
 df['v1_/_v2'] = df['v1'] / df['v2']
 
 # Create categorical data from continuous it that has a meaning
+# Or when the numerical variable has a skewed/irregular distribution
 df['daytime'] = pd.cut(df.hour, [0,6,12,18,24], labels=['Night','Morning','Afternoon','Evening'])
 
 # Polynomial features with sklearn
@@ -522,6 +529,10 @@ lb = preprocessing.LabelBinarizer()
 lb.fit([1, 2, 6, 4, 2])
 lb.classes_ # array([1, 2, 4, 6])
 lb.transform([1, 6]) # array([[1, 0, 0, 0], [0, 0, 0, 1]])
+
+# Note: we can apply any encoder to selected columns!
+for column in binary_variables:
+    df[column] = lb.fit_transform(df[column])
 
 # Make a feature explicitly categorical (as in R)
 # This is not necessary, but can be helpful, e.g. for ints
@@ -851,8 +862,11 @@ model = LogisticRegression(C=1.0, penalty='l1', solver='liblinear')
 model = LogisticRegression(C=1.0, penalty='l2', solver='liblinear')
 model = LogisticRegression(random_state=101, penalty='l2', multi_class='multinomial', solver='lbfgs', max_iter = 1000)
 # -
-from sklearn.neighbors import KNeighborsClassifier
-model = KNeighborsClassifier(n_neighbors=1) # test in a loop best k = n_neighbors
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+model = KNeighborsClassifier(n_neighbors=3) # test in a loop best k = n_neighbors
+# n_neighbors should be multiple of the number of classes + 1
+# Use the elbow method to get best K: vary K in a for loop and choose model with best metric
+# KNeighborsRegressor computes the weighted target value of the K nearest neighbors
 # -
 from sklearn.tree import DecisionTreeClassifier
 model = DecisionTreeClassifier()
