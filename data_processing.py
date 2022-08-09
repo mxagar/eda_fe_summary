@@ -166,6 +166,9 @@ df_filtered = df[(df['location'] == "Munich, Germany") | (df['location'] == "Lon
 cities = ['Munich', 'London', 'Madrid']
 df_filtered = df[df.location.isin(cities)]
 
+# Plotting styles can be modified!
+sns.set_context('talk')
+sns.set_style('white')
 
 ##### -- 
 ##### -- Data Cleaning
@@ -255,6 +258,10 @@ df['bath_private'] = df['bath_description'].apply(lambda text: 1 if 'private' in
 # Map the values == Replace
 dictionary = {'value1':'val1', 'value3':'val2'}
 df['variable'] = df['variable'].map(dictionary)
+
+# We can also map functions.
+# Example: Take absolute correlations values 
+abs_correlations = correlations.map(abs).sort_values()
 
 # Tempodal data: Convert the dates to days since today
 today = dt.datetime(2022,6,17)
@@ -348,6 +355,9 @@ sns.violinplot(x="gender", y="age", data=df)
 # palette: https://seaborn.pydata.org/tutorial/color_palettes.html
 sns.heatmap(df.corr(), annot=True, cmap='RdYlGn', fmt=".2f")
 df.corr()['target'].sort_values(ascending=True).plot(kind='bar')
+# -
+correlations = df[selected_fields].corrwith(y) # correlations with target array y
+correlations.sort_values(inplace=True)
 
 # Correlations if we have many numerical variables: we can't visualize the matrix
 corr_values = df[numerical_cols].corr()
@@ -868,6 +878,32 @@ model = KNeighborsClassifier(n_neighbors=3) # test in a loop best k = n_neighbor
 # Use the elbow method to get best K: vary K in a for loop and choose model with best metric
 # KNeighborsRegressor computes the weighted target value of the K nearest neighbors
 # -
+# SGDClassifier: Linear classifiers (SVM, logistic regression, etc.) with SGD training;
+# depending on the loss, a model is used - default loss: hinge -> SVM
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import SVC, LinearSVC
+# LinearSVC is the linear SVM model, to be used with small simple datasets
+# SVC is the non-linear SVM model that uses kernels, e.g., the Gaussian kernel (RBF)
+# SVC can be used with small to medium datasets
+# We can define:
+# - gamma: multiplier factor of the kernel
+# - C: 1/lambda for regularization
+# - large C and gamma are related to more complex and curvy models 
+model = SVC(kernel='rbf', gamma=1.0, C=10.0)
+# If we have a large dataset, we should use a kernel approximation
+# to transform the dataset and the linear SVM: LinearSVC or SGDClassifier
+from sklearn.kernel_approximation import Nystroem
+# n_components: number of landmarks to compute kernels; these are the new features
+NystroemSVC = Nystroem(kernel="rbf", gamma=1.0, n_components=100)
+X_train = NystroemSVC.fit_transform(X_train)
+X_test = NystroemSVC.transform(X_test)
+sgd = SGDClassifier()  # loss="hinge" by default, so a SVM is used
+linSVC = LinearSVC()
+linSVC.fit(X_train, y_train)
+sgd.fit(X_train, y_train)
+y_pred_linsvc = linSVC.predict(X_test)
+y_pred_sgd = sgd.predict(X_test)
+# -
 from sklearn.tree import DecisionTreeClassifier
 model = DecisionTreeClassifier()
 # -
@@ -878,9 +914,6 @@ from sklearn.ensemble import RandomForestRegressor
 model = RandomForestRegressor(n_estimators=100, random_state=0)
 model.fit(X_train, y_train)
 model.feature_importances_
-# -
-from sklearn.svm import SVC
-model = SVC()
 # -
 from sklearn.naive_bayes import GaussianNB
 model = GaussianNB()
@@ -950,6 +983,44 @@ auc = roc_auc_score(label_binarize(y_test, classes=[0,1,2,3,4,5]),
           label_binarize(y_pred[lab], classes=[0,1,2,3,4,5]), 
           average='weighted')
 model_roc_plot = plot_roc_curve(model, X_test, y_test) # ROC curve plotted and AUC computed
+
+### --- Classification: Decision Boundary Plotting
+
+def plot_decision_boundary(estimator, X, y, label_0, label_1):
+    estimator.fit(X, y)
+    X_color = X.sample(300) # We take only 300 points, because otherwise we have too many points
+    y_color = y.loc[X_color.index] # We take the associated y values of the sampled X points
+    y_color = y_color.map(lambda r: 'red' if r == 1 else 'yellow')
+    x_axis, y_axis = np.arange(0, 1, .005), np.arange(0, 1, .005) # very fine cells
+    xx, yy = np.meshgrid(x_axis, y_axis) # cells created
+    xx_ravel = xx.ravel()
+    yy_ravel = yy.ravel()
+    X_grid = pd.DataFrame([xx_ravel, yy_ravel]).T
+    y_grid_predictions = estimator.predict(X_grid) # for each cell, predict values
+    y_grid_predictions = y_grid_predictions.reshape(xx.shape)
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.contourf(xx, yy, y_grid_predictions, cmap=plt.cm.autumn_r, alpha=.3) # plot regions and boundary
+    ax.scatter(X_color.iloc[:, 0], X_color.iloc[:, 1], color=y_color, alpha=1) # 300 sampled data-points
+    ax.set(
+        xlabel=label_0,
+        ylabel=label_1,
+        title=str(estimator))
+
+# Here, different decision boundaries
+# of an SVC with varied C and gamma values are plotted.
+# An example figure is above, prior to the code.
+
+# Insights:
+# - Higher values of gamma lead to LESS regularization, i.e., more curvy and complex models
+# - Higher values of C lead to LESS regularization, i.e., more curvy and complex models 
+
+from sklearn.svm import SVC # Support Vector Machine classifier
+
+gammas = [.5, 1, 2, 10]
+for gamma in gammas:
+    SVC_Gaussian = SVC(kernel='rbf', gamma=gamma)
+    plot_decision_boundary(SVC_Gaussian, X, y, label_0='feature_1', label_1='feature_2')
 
 ### --- Regression: Evaluation and Interpretation
 

@@ -359,6 +359,15 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 			- `KNearestNeighbors`
 				- Easy interpretation of similar points, but complete dataset is used for inference, thus small and scaled datasets should be used (e.g., `10000 x 50`).
 				- Use the elbow method to deduce the optimum `K`: try different `K` values in a loop and register the error metric with the test/validation split; then take the `K` of the best metric.
+			- Support Vector Machines (SVMs): `sklearn.svm.SVC`, `LinearSVC`
+				- Usually non-linear SVMs are used with a kernel for medium datasets, e.g., with Gaussian kernels (`rbf`)
+					- Example: `rbfSVC = SVC(kernel='rbf', gamma=1.0, C=10.0)`
+					- `gamma` and `C` need to be chosen; the smaller they are, the larger the regularization (less complex model)
+					- `gamma ~ 1/sigma^2`
+					- `C = 1 / lambda`
+				- However, non-linear SVMs are time-intensive as the number of features and data-points increase, because kernels are used based on the similarities of a point to all the landmarks in the dataset. Alternative: use approximate kernels with sampling and linear SVMs
+				- Approximate kernels such as `Nystroem` and `RBFSampler` are used to transform the `X` with sampled approximative kernels; then, we use a `LinearSVC` or `SGDClassifier` with the transformed dataset; that is much faster for large datasets with many features.
+				- Use `GridSearchCV` to detect the optimum hyperparameters.
 			- `RandomForestClassifier`
 	- Unsupervised learning:
 		- Clustering: `KMeans`.
@@ -386,6 +395,7 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 	- A nice example of how to stack the results of several multi-class problems: [03_Classification_IBM.md](https://github.com/mxagar/machine_learning_ibm/blob/main/03_Classification/03_Classification_IBM.md) `/ 1.9 Python Lab: Human Activity`.
 	- Always check which classes get mixed in the confusion matrix: Why are they similar? How could we differentiate them? Do we need more data?
 	- For unbalanced datasets, the Precision-Recall curve is a good metric.
+	- Decision boundaries can be plotted; look at `plot_decision_boundary()` in `data_processing.py`.
 - Bias-Variance trade-off: always consider it!
 	- Model error = bias + variance + irreducible randomness.
 	- Bias error: more simplistic model (e.g., less features), more relaxed model - **underfitting**.
