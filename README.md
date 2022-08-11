@@ -139,7 +139,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 		- [Seaborn color palettes](https://seaborn.pydata.org/tutorial/color_palettes.html).
 	- Bar chart for correlations wrt. target: `df.corr()['target'].sort_values(ascending=True).plot(kind='bar')`.
 	- Pair correlations: `stats.pearsonr(df['x'],df['y'])`.
-	- Check if there is multicolinearity: it's not good.
+	- Check if there is multicolinearity (see section on Feature Selection): it's not good.
 	- Beware of confounding: two correlated variables can be affected/related by something different.
 - If you want to try different or plots:
 	- Historgrams: add density, `kde=True` in `sns.histplot()`.
@@ -188,7 +188,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- Replace categorical levels with few counts (rare) with `'other'`.
 - Categorical feature encoding:
 	- Note: we can encode single columns! Just pass the single column to the encoder.
-	- One-hot encoding / dummy variables: `get_dummies()`; use `drop_first=True` to avoid multi-colinearity issues!
+	- One-hot encoding / dummy variables: `get_dummies()`; use `drop_first=True` to avoid multi-colinearity issues! (see Feature Selection Section)
 		- Alternative: `sklearn.preprocessing.OneHotEncoder`.
 		- In general, `sklearn` encoders are objects that can be saved and have attributes and methods: `classes_`, `transform()`, `inverse_transform()`, etc.
 		- Use `pd.Categorical()` if we want to dummify integers; for strings or `np.object` this should not be necessary.
@@ -314,8 +314,9 @@ class MeanImputer(BaseEstimator, TransformerMixin):
 	1. The effect of each variable is analyzed on the target using ANOVA or similar.
 	2. Greedy approaches: all possible feature combinations are tested (very expensive).
 	3. Lasso regularization: L1 regularization forces coefficients of less important variables to become 0; thus, we can remove them. This is the method I have normally used.
-- Multi-colinearity: detect and avoid it! In models such as linear regression the coefficients or parameters denote the effect of increasing one unit value of the associated feature while the *rest of the parameters is fixed*. If there are strong correlations (i.e., multi-colinearity), that is not true, since the parameter values are related, they move together.
-	- We can measure multi-colinearity with heatmaps of correlations `sns.heatmap(df.corr())`; if we have too many variables to visualize, take the upper triangle of the correlation matrix with `np.tril_indices_from()` and `stack()` them into a multi-indexed dataframe. Then, `query()` the pairs with high absolute correlation values.
+- Multi-colinearity: detect and avoid it! In models such as linear regression the coefficients or parameters denote the effect of increasing one unit value of the associated feature while the *rest of the parameters is fixed*. If there are strong correlations (i.e., multi-colinearity), that is not true, since the parameter values are related, they move together. Additionally, in regression models X^TX might become non-invertible, because the variables are not independent enough.
+	- We can detect multi-colinearity with heatmaps of correlations `sns.heatmap(df.corr())`; if we have too many variables to visualize, take the upper triangle of the correlation matrix with `np.tril_indices_from()` and `stack()` them into a multi-indexed dataframe. Then, `query()` the pairs with high absolute correlation values.
+	- A more formal way of detecting multi-colinearity consists in computing the R^2 of each predictor fitted against the rest of the predictors; if any variable can be predicted with R^2 > 0.8, it is introducing multi-colinearity. This is related to the Variable Inflation Factor: VIF = 1 / (1-R^2); if VIF > 5, i.e., R^2 > 0.8, we have multi-colinearity.
 	- Consider removing variables that are strongly correlated with other variables.
 - We can measure sparsity of information with `PCA()`; if less variables explain most of the variance, we could drop some.
 - Typical method: Select variables with L1 regularized regression (lasso): `SelectFromModel(Lasso())`.
