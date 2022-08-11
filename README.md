@@ -369,6 +369,12 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 				- However, non-linear SVMs are time-intensive as the number of features and data-points increase, because kernels are used based on the similarities of a point to all the landmarks in the dataset. Alternative: use approximate kernels with sampling and linear SVMs
 				- Approximate kernels such as `Nystroem` and `RBFSampler` are used to transform the `X` with sampled approximative kernels; then, we use a `LinearSVC` or `SGDClassifier` with the transformed dataset; that is much faster for large datasets with many features.
 				- Use `GridSearchCV` to detect the optimum hyperparameters.
+			- `DecisionTreeClassifier`
+				- Decision trees are nice to interpret when we plot the trees
+				- However, they overfit the dataset if no constraints are set to the tree; therefore, the usual approach is:
+					- Create a tree with overfitting and extract its parameters: `max_depth`, etc.
+					- Run a `GridSearchCV` with the parameter ranges given by the maximum values of the overfit tree to perform hyperparmeter tuning.
+					- We can perform regressions with `DecisionTreeRegressor`: a mean value for each leaf node is computed
 			- `RandomForestClassifier`
 	- Unsupervised learning:
 		- Clustering: `KMeans`.

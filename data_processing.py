@@ -860,7 +860,7 @@ model = Lasso(alpha=0.001, random_state=0) # alpha: regularization strength
 model = Ridge(alpha=0.001, random_state=0) 
 model.fit(X_train, y_train)
 model.coef_
-# -
+# ---
 from sklearn.linear_model import LogisticRegression, LogisticRegressionCV
 model = LogisticRegression()
 # Although logistic regression is binary, it is generalized in Scikit-Learn
@@ -871,13 +871,13 @@ model = LogisticRegression()
 model = LogisticRegression(C=1.0, penalty='l1', solver='liblinear')
 model = LogisticRegression(C=1.0, penalty='l2', solver='liblinear')
 model = LogisticRegression(random_state=101, penalty='l2', multi_class='multinomial', solver='lbfgs', max_iter = 1000)
-# -
+# ---
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 model = KNeighborsClassifier(n_neighbors=3) # test in a loop best k = n_neighbors
 # n_neighbors should be multiple of the number of classes + 1
 # Use the elbow method to get best K: vary K in a for loop and choose model with best metric
 # KNeighborsRegressor computes the weighted target value of the K nearest neighbors
-# -
+# ---
 # SGDClassifier: Linear classifiers (SVM, logistic regression, etc.) with SGD training;
 # depending on the loss, a model is used - default loss: hinge -> SVM
 from sklearn.linear_model import SGDClassifier
@@ -903,36 +903,73 @@ linSVC.fit(X_train, y_train)
 sgd.fit(X_train, y_train)
 y_pred_linsvc = linSVC.predict(X_test)
 y_pred_sgd = sgd.predict(X_test)
-# -
-from sklearn.tree import DecisionTreeClassifier
-model = DecisionTreeClassifier()
-# -
+# ---
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
+# Without any constraints, our decision tree will overfit the training dataset.
+# We can use this overfit model to identify the maximum depth and feature numbers
+# for a grid search later on.
+# Regularizing parameters:
+# - criterion: we can select different information curves to decide whether to further split: 'gini', 'entropy'
+# - max_features: maximum number of features to look at when we split
+# - max_depth: maximum allowed depth
+# - min_samples_leaf: minimum samples necessary to be a leaf (default: 1)
+model = DecisionTreeClassifier(random_state=42)
+model = model.fit(X_train, y_train)
+# We define the search array maximum values to be the values of the overfit tree
+param_grid = {'max_depth':range(1, model.tree_.max_depth+1, 2),
+              'max_features': range(1, len(model.feature_importances_)+1)}
+# Grid search with cross validation to determine the optimum hyperparameters
+gt = GridSearchCV(DecisionTreeClassifier(random_state=42),
+                  param_grid=param_grid,
+                  scoring='accuracy',
+                  n_jobs=-1)
+gt = gt.fit(X_train, y_train)
+# Get best estimator: the tree and its parameters
+gt.best_estimator_.tree_.node_count, GR.best_estimator_.tree_.max_depth
+# Get feature importances
+gt.best_estimator_.feature_importances_
+## Plot tree
+from io import StringIO
+from IPython.display import Image
+from sklearn.tree import export_graphviz
+import pydotplus
+# Create an output destination for the file
+dot_data = StringIO()
+export_graphviz(dt, out_file=dot_data, filled=True)
+graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
+# View the tree image
+# The nodes are color coded: each color belongs to a class,
+# the darker the color the more pure the contained data-points.
+filename = 'wine_tree.png'
+graph.write_png(filename)
+Image(filename=filename) 
+# ---
 from sklearn.ensemble import RandomForestClassifier
 model = RandomForestClassifier(n_estimators=200)
-# -
+# ---
 from sklearn.ensemble import RandomForestRegressor
 model = RandomForestRegressor(n_estimators=100, random_state=0)
 model.fit(X_train, y_train)
 model.feature_importances_
-# -
+# ---
 from sklearn.naive_bayes import GaussianNB
 model = GaussianNB()
-# -
+# ---
 from sklearn.mixture import GaussianMixture
 model = GaussianMixture(n_components=2,covariance_type='diag')
-# -
+# ---
 from sklearn.mixture import BayesianGaussianMixture
 model = BayesianGaussianMixture(n_components=2,covariance_type='diag')
-# -
+# ---
 from sklearn.naive_bayes import MultinomialNB
 model = MultinomialNB()
-# -
+# ---
 from sklearn.cluster import KMeans
 model = KMeans(n_clusters=4)
 model.fit(X)
 model.cluster_centers_
 model.labels_
-# -
+# ---
 from sklearn.decomposition import PCA
 model = PCA(n_components=2)
 model.fit(X)
