@@ -564,6 +564,7 @@ except KeyError as err:
     print("Columns already dummified!")
 
 # Train/Test split
+# If classification, use a stratified version to keep class ratios!
 y = df['price']
 X = df.drop('price',axis=1)
 X_train, X_test, y_train, y_test = train_test_split(

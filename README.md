@@ -491,4 +491,4 @@ pipe.score(X_test, y_test)
 Mikel Sagardia, 2022.  
 No guarantees.
 
-You can freely use and forward this repository if you find it useful. In that case, I'd be happpy if you link it to me :blush:.
+You can freely use and forward this repository if you find it useful. In that case, I'd be happy if you link it to me :blush:.
