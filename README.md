@@ -394,7 +394,7 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 			- True positive rate = Sensitivity = Recall
 			- False positive rate = 1 - Specificity
 			- AUC: Area Under the Curve: 0.5 random guess (triangle) - 1 perfect model (square)
-		- Alternative to ROC: Precision-Recall curve; usually descending.
+		- Alternative to ROC: Precision-Recall curve; usually descending, better suited than ROC for unbalanced datasets.
 - Classification problems / models:
 	- Always maintain class ratios in different splits with stratified groupings: `stratify`, `StratifiedShuffleSplit`
 	- Usually all classification models can be used as regression models!

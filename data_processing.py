@@ -52,7 +52,7 @@ from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 
-from sklearn.metrics import classification_report, confusion_matrix, plot_roc_curve
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve, plot_roc_curve
 from sklearn.metrics import precision_recall_fscore_support as classification_score
 from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score
 
@@ -985,7 +985,8 @@ model.fit(X_train, np.ravel(y_train))
 # Predict 
 pred_train = model.predict(X_train)
 pred_test = model.predict(X_test) # if classification, LabelEncoded target integer
-prob_test = model.predict_proba(X_test).max(axis=1) # if classification, probability of selected class
+# If classification, we can get probabilities of classes, each class a probability value (column); select max
+prob_test = model.predict_proba(X_test).max(axis=1)
 
 ### --- Evaluation and Interpretation: General
 
@@ -1021,6 +1022,21 @@ auc = roc_auc_score(label_binarize(y_test, classes=[0,1,2,3,4,5]),
           label_binarize(y_pred[lab], classes=[0,1,2,3,4,5]), 
           average='weighted')
 model_roc_plot = plot_roc_curve(model, X_test, y_test) # ROC curve plotted and AUC computed
+# An alternative is the following, but we need to pass y_prob = model.predict_proba(X_test)
+# But we need to plot manually
+fpr, tpr, thresholds = roc_curve(y_test, y_prob[:,1]) # select the class from which we need the probabilities
+plt.plot(fpr, tpr, linewidth=5)
+plt.plot([0, 1], [0, 1], ls='--', color='black', lw=.3)
+plt.set(xlabel='False Positive Rate',
+        ylabel='True Positive Rate',
+        xlim=[-.01, 1.01], ylim=[-.01, 1.01],
+        title='ROC curve')
+plt.grid(True)
+
+# Precision-Recall Curve: Similar to ROC, but better suited for unbalanced datasets
+# We need to plot manually
+precision, recall, _ = precision_recall_curve(y_test, y_prob[:,1])
+plt.plot(recall, precision, linewidth=5)
 
 ### --- Classification: Decision Boundary Plotting
 
