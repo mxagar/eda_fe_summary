@@ -82,6 +82,13 @@ df = pd.concat([X,y],axis=1)
 df.to_csv('data/dataset.csv',sep=',', header=True, index=False)
 df = pd.read_csv('data/dataset.csv')
 
+# Serialize and save any python object, e.g., a model/pipeline
+# BUT: be aware that python versions must be consistent
+# when saving and loading.
+import pickle
+pickle.dump(model, open('model.pickle','wb')) # wb: write bytes
+model = pickle.load(open('model.pickle','rb')) # rb: read bytes
+
 df.head(3)
 df.info()
 df["price"].describe() # use .T if many columns
