@@ -952,13 +952,87 @@ filename = 'wine_tree.png'
 graph.write_png(filename)
 Image(filename=filename) 
 # ---
+# Random forests train n_estimators trees in subsets of the dataset
+# constraining the number features used in each independent parallelized tree.
+# They cannot overfit, but their performance plateaus from a given n_estimators on.
+# We can detect the critical n_estimators trying different values in a for-loop.
 from sklearn.ensemble import RandomForestClassifier
-model = RandomForestClassifier(n_estimators=200)
+RF = RandomForestClassifier(oob_score=True, # compute Out-of-bag score: score out of sub-sample
+                            random_state=42, 
+                            warm_start=True, # Re-use the previous result to fit new tree
+                            n_jobs=-1) # use all CPUs
+oob_list = list()
+# Iterate through all of the possibilities for number of trees
+for n_trees in [15, 20, 30, 40, 50, 100, 150, 200, 300, 400]:
+    # Set number of trees now
+    RF.set_params(n_estimators=n_trees)
+    RF.fit(X_train, y_train)
+    # Get the oob error: score on points out of samples
+    oob_error = 1 - RF.oob_score_
+    oob_list.append(pd.Series({'n_trees': n_trees, 'oob': oob_error}))
+# Plot how the out-of-bag error changes with the number of trees
+rf_oob_df = pd.concat(oob_list, axis=1).T.set_index('n_trees')
+rf_oob_df.plot(legend=False, marker='o', figsize=(14, 7), linewidth=5)
+# Set the optimum number of trees and extract feature importances.
+# Apparently, we don't need to train the model again.
+# I understand that's because the last trained model had 400 estimators;
+# so I guess we take 100 from those 400?
+model = RF.set_params(n_estimators=100)
+feature_imp = pd.Series(model.feature_importances_, index=feature_cols).sort_values(ascending=False)
+feature_imp.plot(kind='bar', figsize=(16, 6))
 # ---
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 model = RandomForestRegressor(n_estimators=100, random_state=0)
 model.fit(X_train, y_train)
 model.feature_importances_
+# ---
+from sklearn.ensemble import GradientBoostingClassifier, GradientBoostingRegressor
+# Gradient Boosting improves weak learner trees successively penalizing residuals,
+# thus, it risks of overfitting; solution: we apply grid search.
+# Grid Search: hyperparameters
+from sklearn.model_selection import GridSearchCV
+param_grid = {'n_estimators': [400], #tree_list,
+              'learning_rate': [0.1, 0.01, 0.001, 0.0001],
+              'subsample': [1.0, 0.5],
+              'max_features': [1, 2, 3, 4]}
+GV_GBC = GridSearchCV(GradientBoostingClassifier(random_state=42,
+                                                 warm_start=True), 
+                      param_grid=param_grid, 
+                      scoring='accuracy',
+                      n_jobs=-1)
+# Do the grid search fittings
+GV_GBC = GV_GBC.fit(X_train, y_train)
+# The best model
+GV_GBC.best_estimator_
+# ---
+from sklearn.ensemble import VotingClassifier, VotingRegressor
+from sklearn.ensemble import StackingClassifier, StackingRegressor
+# Voting and staking combine different models; 
+# the final answer is the result of a voting or an estimation out of model outputs.
+# We need to define the parallel models or estimators.
+# Here, estimators are defined with default hyperparams;
+# we should better use either specific params or perform grid search.
+estimators = [('SVM',SVC(random_state=42)),
+              ('knn',KNeighborsClassifier()),
+              ('dt',DecisionTreeClassifier())]
+# Voting: 'hard' if we want majority class, 'soft' if probabilities are averaged
+VC = VotingClassifier(estimators=estimators, voting='soft')
+# Fit and predict in the case of voting
+VC = VC.fit(X_train, y_train)
+y_pred = VC.predict(X_test)
+# Stacking: a final estimator is required
+SC = StackingClassifier(estimators=estimators, final_estimator= LogisticRegression())
+# Grid search: hyperparameters
+# Recall to use double _ for models within model
+param_grid = {'dt__max_depth': [n for n in range(10)],
+              'dt__random_state':[0],
+              'SVM__C':[0.01,0.1,1],
+              'SVM__kernel':['linear', 'poly', 'rbf'],
+              'knn__n_neighbors':[1,4,8,9]}
+search = GridSearchCV(estimator=SC, param_grid=param_grid,scoring='accuracy')
+search.fit(X_train, y_train)
+search.best_score_ # 1, be aware of the overfitting!
+search.best_params_
 # ---
 from sklearn.naive_bayes import GaussianNB
 model = GaussianNB()

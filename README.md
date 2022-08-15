@@ -376,7 +376,22 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 					- Create a tree with overfitting and extract its parameters: `max_depth`, etc.
 					- Run a `GridSearchCV` with the parameter ranges given by the maximum values of the overfit tree to perform hyperparmeter tuning.
 					- We can perform regressions with `DecisionTreeRegressor`: a mean value for each leaf node is computed
-			- `RandomForestClassifier`
+			- Ensemble Methods: they beat usually any other method with tabular data.
+				- Most common ensemble methods:
+				  - Bagging = bootstrapped aggregating: several independent trees are fitted using samples with replacement; since independent, parallelized.
+				    - `BaggingClassifier`: overfitting can occur because trees are correlated (due to sampling with replacement).
+				    - `RandomForestClassifier`: max number of features selected randomly, which decreases correlation; thus, no overfitting.
+				  - Boosting: complete dataset used in successive weak or simple base learners which improve by penalizing residuals (miss-classified points). Since we're improving the previous models, we risk overfitting, thus we need to do grid search.
+				    - `AdaBoostClassifier`: we can select our weak learner model; the loss is exponential.
+				    - `GradientBoostingClassifier`: weak learners are trees; the loss is not as steep and it performs better with outliers.
+				  - Voting / Stacking: we combine several models and the final classification is a hard or soft average (i.e., majority of classes or average probability). Use them only if they are significantly better than the single models, because they introduce complexity, i.e., they are more difficult to handle and they overfit. So, if we use them, apply grid search!
+				    - `VotingClassifier`: voting is done.
+				    - `StackingClassifier`: a classifier is appended to give the final result.
+				- `AdaBoostClassifier` can take different base learners, not only trees.
+				- `RandomForestClassifier` forests do not overfit with more learners/trees, the performance plateaus; they are fast, because the trees are independently trained.
+				- `GradientBoostingClassifier` is better than `AdaBoostClassifier`, but it takes longer to train it; try the `xgboost` library instead of `sklearn`.
+				- Boosting overfits, thus, perform always a grid search! 
+				- **Advice: stick to `RandomForestClassifier` or `GradientBoostingClassifier`with grid search; also, try `xgboost`.**
 	- Unsupervised learning:
 		- Clustering: `KMeans`.
 		- Dimensionality reduction: `PCA`.
