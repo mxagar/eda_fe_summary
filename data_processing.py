@@ -1198,6 +1198,45 @@ color_list = ['b' if el > 0 else 'r' for el in [importance['plus'].iloc[i] for i
 importance['coef'][-top_features:].plot(kind='barh',color=color_list[-top_features:])
 plt.xlabel('Coefficient Value of Features')
 
+### --- Evaluation and Interpretation of Black Box Models: Permutation Feature Importance
+
+# Feature importances are obtained by shuffling the values in each column and comparing the prediction error
+# Typical black box models: 
+# - NNs
+# - SVM with non-linear kernels
+# - Random Forests (although they have feature_importances_)
+# - Gradient boosted trees
+
+# Use permutation_importance to calculate permutation feature importances.
+# Note we have these parameters, too:
+# - n_repeats: how many times each feature is permuted
+# - sample_weight: weight assigned to each sample/data-point
+# The output is of the size: n_features x n_repeats
+feature_importances = permutation_importance(estimator=black_box_model,
+                                             X = X_train,
+                                             y = y_train,
+                                             n_repeats=5,
+                                             random_state=123,
+                                             n_jobs=2)
+feature_importances.importances # (11, 5) array: features x n_repeats
+# Plot
+def visualize_feature_importance(importance_array):
+    # Sort the array based on mean value
+    sorted_idx = importance_array.importances_mean.argsort()
+    # Visualize the feature importances using boxplot
+    fig, ax = plt.subplots()
+    fig.set_figwidth(16)
+    fig.set_figheight(10)
+    fig.tight_layout()
+    ax.boxplot(importance_array.importances[sorted_idx].T,
+               vert=False, labels=X_train.columns[sorted_idx])
+    ax.set_title("Permutation Importances (train set)")
+    plt.show()
+# A ranked box plot is shown, with a box for each feature
+# Note that we used n_repeats=5;
+# we can increase that number to have more realistic box plots
+visualize_feature_importance(feature_importances)
+
 ### --- CROSS-VALIDATION: Hyperparameter Tuning
 
 # We can loop across different parameter values and find the set

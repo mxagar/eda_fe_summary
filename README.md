@@ -435,9 +435,17 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 	- Define a `Pipeline` with the models from which parameters need to be found/optimized (see `Pipelines` below).
 	- Instantiate and fit `GridSearchCV` with the parameters to be optimized.
 	- **Alternative**: use models with built-in cross-validation: `RidgeCV`, `LassoCV`, `ElasticNetCV`.
-- Plot model parameters to understand what's going on; often it's better than the predictions: 
-	- `importance = pd.DataFrame(model.coef_.ravel())` and the `sort_values()`.
-	- However, note that in addition to coefficient magnitude (related to importance), we should have a look at the significances, i.e., p-values. Scikit-Learn doesn't have that, but `statsmodels` does.
+- Model interpretation: see [03_Classification_IBM.md](https://github.com/mxagar/machine_learning_ibm/blob/main/03_Classification/03_Classification_IBM.md)
+	- If the model is interpretable (linear, trees, KNN), plot model parameters to understand what's going on; often it's better than the predictions: 
+		- `importance = pd.DataFrame(model.coef_.ravel())` and `sort_values()`.
+		- `model.feature_importances_`
+		- However, note that in addition to coefficient magnitude (related to importance), we should have a look at the significances, i.e., p-values. Scikit-Learn doesn't have that, but `statsmodels` does.
+	- If the model is not that interpretable (SVM, NNs, Random forests, Gradient Boosted Trees), we can try:
+		- Global surrogate models: build twin but interpretable models that achieve similar enough errors and analyze their parameters.
+		- Local surrogate models: pick one *local* row to analyze, create a synthetic dataset with similarity weights and train a surrogate model with it which can be interpretable.
+		- Model Agnostic Explanations:
+			- Permutation feature importance: selected feature values are shuffled and difference between predicted targets is evaluated 
+			- Partial Dependency Plots (PDP): all values of a feature are ranged from its minimum to its maximum and the average outcome is computed and plotted.
 - If text reports need to be saved, convert them to figures: `plt.text()`.
 
 ## Tips for Production
