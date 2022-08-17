@@ -1317,7 +1317,7 @@ np.sqrt(mean_squared_error(y_test, model.predict(X_test)))
 
 ### --- Unbalanced Datasets
 
-# 1. Perform train/test split
+# 1. Perform stratified train/test split
 # 2. Get metrics with original dataset: precision, recall, f1; select the most appropriate one
 #       - Precision measures how bad the Type I error is
 #       - Recall measures how bad the Type II error is
@@ -1325,6 +1325,13 @@ np.sqrt(mean_squared_error(y_test, model.predict(X_test)))
 #       - Weights: inverse of class ratios passed as dictionary in model instantiation
 #       - Resampling: oversampling (SMOTE) or undersampling
 # 4. Compute metrics again and take best technique for our case
+
+# Stratified split
+X_train, X_test, y_train, y_test = train_test_split(X,
+                                                    y,
+                                                    test_size=0.2,
+                                                    stratify=y,
+                                                    random_state = rs)
 
 # Class weights can be passed in a dictionary
 # choosing values which are inverse to the frequency of the class.
