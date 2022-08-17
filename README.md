@@ -401,9 +401,10 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 		- Confusion matrix: `Real (Positive, Negative) x Predicted (Positive, Negative)`
 		- Accuracy (bad metric, unless equal number of class instances): diagonal / all 4 cells = `(TP + TN) / (TP + FP + FN + TN)`
 		- **Precision** (of Predicted Positives) of each class = `TP / (TP + FP)`
-			- Interpretation: do we wan to assure that our predicted positives are correct?
+			- Interpretation: do we wan to assure that our predicted positives are correct? **How good are we at minimizing Type I error?**
 		- **Recall** or Sensitivity (wrt. Real Positives) of each class = `TP / (TP + FN)`
-			- Interpretation: do we want to capture all the true positives?
+			- Interpretation: do we want to capture all the true positives? **How good are we at minimizing Type II error?**
+			- It is the most important metric in disease or fraud detection.
 		- Specificity of each class: Precision for Negatives = `TN / (FP + TN)`
 		- F1: harmonic mean between precision and recall; it is a nice trade-off between precision and recall, thus, a metric which is recommend by default: `F1 = 2 *(Precision*Recall)/(Precision+Recall)`
 		- ROC curve (binary classifications)
@@ -419,6 +420,23 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 	- Always check which classes get mixed in the confusion matrix: Why are they similar? How could we differentiate them? Do we need more data?
 	- For unbalanced datasets, the Precision-Recall curve is a good metric.
 	- Decision boundaries can be plotted; look at `plot_decision_boundary()` in `data_processing.py`.
+- Unbalanced datasets (specially important for classification problems):
+	- Accuracy is often not a good metric; in particular, accuracy is a bad metric for unbalanced datasets.
+	- Precision measures how bad the Type I error is.
+	- Recall measures how bad the Type II error is.
+	- In each business case (e.g., illness detection, fraud detection), we need to choose the cost of each type of error: Type I or II; then, we select the right metric.
+	- Techniques to deal with unbalanced datasets; first, measure the class distribution (`value_counts()`) and the metric to improve, e.g. recall. Then, apply:
+	  - Weights: use weights which are inverse to the ratio of the class; these are used in the loss computation.
+	    - Weights can be passed in model instantiation or
+	    - in the `fit` method
+	  - Resampling:
+	    - Oversampling minority class; e.g. SMOTE: create points in between a minority point and its nearest neighbors
+	    - Undersampling majority class; e.g., randomly remove majority points.
+	- **Important note: there is no single best approach for all cases!** We need to:
+	  - Choose metric to improve.
+	  - Compute metric with original dataset.
+	  - Try different techniques (resampling, weights) and check metric.
+	  - Select the best technique.
 - Bias-Variance trade-off: always consider it!
 	- Model error = bias + variance + irreducible randomness.
 	- Bias error: more simplistic model (e.g., less features), more relaxed model - **underfitting**.
