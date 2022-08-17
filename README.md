@@ -426,7 +426,7 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 	- Recall measures how bad the Type II error is.
 	- In each business case (e.g., illness detection, fraud detection), we need to choose the cost of each type of error: Type I or II; then, we select the right metric.
 	- Techniques to deal with unbalanced datasets; first, measure the class distribution (`value_counts()`) and the metric to improve, e.g. recall. Then, apply:
-	  - Weights: use weights which are inverse to the ratio of the class; these are used in the loss computation.
+	  - Weights: use weights which are inverse to the ratio of the class; however, we can try several weight values, i.e., we can treat them as hyperparameters to be tuned. Weights are used in the loss computation.
 	    - Weights can be passed in model instantiation or
 	    - in the `fit` method
 	  - Resampling:

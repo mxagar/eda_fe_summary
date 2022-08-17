@@ -1085,7 +1085,7 @@ plt.axis('off')
 # Then, support doesn't make sense.
 # Without the average parameter, we get arrays of six values for each metric,
 # one item in each array for each class.
-precision, recall, fscore, _ = score(y_test, y_pred[lab], average='weighted')
+precision, recall, fscore, _ = classification_score(y_test, y_pred[lab], average='weighted')
 # Accuracy is for the complete dataset (ie., all classes).
 accuracy = accuracy_score(y_test, y_pred[lab])
 
@@ -1313,5 +1313,61 @@ model.fit(X_train, y_train)
 # Extract values
 model.alpha_
 model.coef_
-np.sqrt(mean_squared_error(y_test, model.predict(X_test))
+np.sqrt(mean_squared_error(y_test, model.predict(X_test)))
 
+### --- Unbalanced Datasets
+
+# 1. Perform train/test split
+# 2. Get metrics with original dataset: precision, recall, f1; select the most appropriate one
+#       - Precision measures how bad the Type I error is
+#       - Recall measures how bad the Type II error is
+# 3. Try techniques:
+#       - Weights: inverse of class ratios passed as dictionary in model instantiation
+#       - Resampling: oversampling (SMOTE) or undersampling
+# 4. Compute metrics again and take best technique for our case
+
+# Class weights can be passed in a dictionary
+# choosing values which are inverse to the frequency of the class.
+# For instance, if class 0 : class 1 has a ratio of 10:1, we could define:
+class_weight = {}
+class_weight[0] = 0.1 # 10:1
+class_weight[1] = 0.9 # 1:10
+model = RandomForestClassifier(random_state=rs, class_weight=class_weight)
+
+# However, we can also treat class weights as hyperparameter to be tuned
+params_grid = {
+  'max_depth': [5, 10, 15, 20],
+  'n_estimators': [25, 50, 100],
+  'min_samples_split': [2, 5],
+  'class_weight': [{0:0.1, 1:0.9}, {0:0.2, 1:0.8}, {0:0.3, 1:0.7}]
+}
+model = RandomForestClassifier(random_state=rs)
+grid_search = GridSearchCV(estimator = model, 
+                       param_grid = params_grid, 
+                       scoring='f1',
+                       cv = 5, verbose = 1)
+
+# Metric computation
+# Parameters (case: binary classification):
+# - beta: the strength of recall versus precision in the F-score; default 1.0
+# - pos_label: the class to report if average='binary' and the data is binary; default 1
+precision, recall, fbeta, support = classification_score(y_test, preds, beta=1, pos_label=1, average='binary')
+
+# Resampling: under- and oversampling
+from imblearn.over_sampling import RandomOverSampler, SMOTE
+from imblearn.under_sampling import RandomUnderSampler
+
+def resample(X_train, y_train):
+    # Oversampling: minority class(es) synthetically multiplied
+    # SMOTE oversampler: new data-points between a minority point and its nearest neighbors
+    smote_sampler = SMOTE(random_state = 123)
+    # Undersampling: number of points of majority class decreased
+    # Random undersampler: removed points randomly selected
+    under_sampler = RandomUnderSampler(random_state=123)
+    # Resampled datasets
+    X_smo, y_smo = smote_sampler.fit_resample(X_train, y_train)
+    X_under, y_under = under_sampler.fit_resample(X_train, y_train)
+    return X_smo, y_smo, X_under, y_under
+
+X_smo, y_smo, X_under, y_under = resample(X_train, y_train)
+# Now, fit new model and compute its metrics
