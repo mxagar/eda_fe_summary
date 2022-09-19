@@ -43,6 +43,7 @@ import seaborn as sns
 import matplotlib.pylab as plt
 %matplotlib inline
 
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
