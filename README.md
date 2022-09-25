@@ -17,21 +17,21 @@ For more information on the motivation of the guide, see my [blog post](https://
 
 ### Table of Contents
 
-- [General](#General)
-- [Data Cleaning](#Data-Cleaning)
-- [Exploratory Data Analysis](#Exploratory-Data-Analysis)
-- [Feature Engineering](#Feature-Engineering)
-	- [Scikit-Learn Transformers](#Scikit-Learn-Transformers)
-	- [Creation of Transformer Classes](#Creation-of-Transformer-Classes)
-		- Manual definition
-		- Classes derived from `sklearn`
-- [Feature Selection](#Feature-Selection)
-- [Hypothesis Tests](#Hypothesis-Tests)
-- [Data Modelling and Evaluation](#Data-Modelling-and-Evaluation)
-- [Tips for Production](#Tips-for-Production)
-	- [Pipelines](#Pipelines)
-- [Related Links](#Related-Links)
-- [Authorship](#Authorship)
+- [Data Processing: A Practical Guide](#data-processing-a-practical-guide)
+		- [Table of Contents](#table-of-contents)
+	- [General](#general)
+	- [Data Cleaning](#data-cleaning)
+	- [Exploratory Data Analysis](#exploratory-data-analysis)
+	- [Feature Engineering](#feature-engineering)
+		- [Scikit-Learn Transformers](#scikit-learn-transformers)
+		- [Creation of Transformer Classes](#creation-of-transformer-classes)
+	- [Feature Selection](#feature-selection)
+	- [Hypothesis Tests](#hypothesis-tests)
+	- [Data Modelling and Evaluation](#data-modelling-and-evaluation)
+	- [Tips for Production](#tips-for-production)
+		- [Pipelines](#pipelines)
+	- [Related Links](#related-links)
+	- [Authorship](#authorship)
 
 ## General
 
@@ -527,6 +527,8 @@ pipe.score(X_test, y_test)
 - My notes of the [Udacity Machine Learning DevOps Nanodegree](https://www.udacity.com/course/machine-learning-dev-ops-engineer-nanodegree--nd0821): [mlops_udacity](https://github.com/mxagar/mlops_udacity).
 - My forked repository of the Udemy course [Deployment of Machine Learning Models](https://www.udemy.com/course/deployment-of-machine-learning-models/) by Soledad Galli and Christopher Samiullah: [deploying-machine-learning-models](https://github.com/mxagar/deploying-machine-learning-models).
 - An example where I apply some of the techniques explained here: [airbnb_data_analysis](https://github.com/mxagar/airbnb_data_analysis).
+- A Template Package to Transform Machine Learning Research Notebooks into *Production-Level* Code and Its Application to Predicting Customer Churn:  [customer_churn_production](https://github.com/mxagar/customer_churn_production).
+
 
 ## Authorship
 
