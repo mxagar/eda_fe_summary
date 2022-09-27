@@ -476,8 +476,12 @@ from scipy.special import inv_boxcox
 y_pred = inv_boxcox(y_pred_bc,lmbd)
 
 # Scikit-Learn Power Transformer
+# Box-Cox: all positive
+# Yeo-Johnson: positive and negative
 pt = PowerTransformer(method='box-cox', standardize=False) # method=‘yeo-johnson’
-df['var_transformed'] = pt.fit_transform(df['var'])
+#df['var_transformed'] = pt.fit_transform(df['var'])
+df['var_transformed'] = pt.fit_transform(df['var'].values.reshape(-1,1)) # we might need to reshape
+pt.inverse_transform(df['var_transformed'].values.reshape(-1,1)) # we should get df['var']
 
 # Multiplicative interaction
 df['v1_x_v2'] = df['v1'] * df['v2']
@@ -1103,7 +1107,7 @@ sns.heatmap(confusion_matrix(y_test,pred_test), annot=True);
 auc = roc_auc_score(label_binarize(y_test, classes=[0,1,2,3,4,5]),
           label_binarize(y_pred[lab], classes=[0,1,2,3,4,5]), 
           average='weighted')
-model_roc_plot = plot_roc_curve(model, X_test, y_test) # ROC curve plotted and AUC computed
+model_roc_plot = plot_roc_curve(model, X_test, y_test, name="Logistic Regression") # ROC curve plotted and AUC computed
 # An alternative is the following, but we need to pass y_prob = model.predict_proba(X_test)
 # But we need to plot manually
 fpr, tpr, thresholds = roc_curve(y_test, y_prob[:,1]) # select the class from which we need the probabilities
