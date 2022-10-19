@@ -55,7 +55,7 @@ from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 
 from sklearn.metrics import classification_report, confusion_matrix, roc_curve, plot_roc_curve
 from sklearn.metrics import precision_recall_fscore_support as classification_score
-from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score
+from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score, plot_confusion_matrix
 
 # Encoding with Scikit-Learn
 from sklearn import preprocessing # LabelEncoder, LabelBinarizer, OneHotEncoder
@@ -186,7 +186,7 @@ sns.set_style('white')
 # df.duplicated(['id']) -> False, False, ...
 duplicate = df[df.duplicated(['id'])]
 # Drop duplicates
-duplicated_removed = df.drop_duplicates()
+duplicated_removed = df.drop_duplicates().reset_index(drop=True)
 # Check that all indices are unique
 df.index.is_unique
 
@@ -1115,6 +1115,20 @@ accuracy = accuracy_score(y_test, y_pred[lab])
 print(confusion_matrix(y_test,pred_test))
 print(classification_report(y_test,pred_test))
 sns.heatmap(confusion_matrix(y_test,pred_test), annot=True);
+# Another way of plotting the confusion matrix
+# If we have used the LabelEncoder(), we can retrieve the class names
+# and pass them as parameters: display_labels=le.classes_,
+fig_cm, sub_cm = plt.subplots(figsize=(10, 10))
+plot_confusion_matrix(
+    model,
+    X_test,
+    y_test,
+    ax=sub_cm,
+    normalize="true",
+    values_format=".1f",
+    xticks_rotation=90,
+)
+fig_cm.tight_layout()
 
 # ROC-AUC scores can be calculated by binarizing the data
 # label_binarize performs a one-hot encoding,
