@@ -201,8 +201,11 @@ For more information on the motivation of the guide, see my [blog post](https://
 	- Also useful for the **target**, `LabelEncoder`: converts class strings into integers, necessary for target values in multi-class classification.
 		- `fit(["paris", "paris", "tokyo", "amsterdam"]) -> transform(["tokyo", "paris"]): [2, 1]`.
 		- It is common to use `LabelEncoder` first and then `LabelBinarizer`.
-	- Ordinal encoding: convert ordinal categories to `0,1,2,...`; but be careful: we're assuming the distance from one level to the next is the same -- Is it really so? Maybe it's better applying one-hot encoding?
+	- Ordinal encoding: convert ordinal categories to `0,1,2,...`; but be careful: we're assuming the distance from one level to the next is the same -- Is it really so? If not, consider applying one-hot encoding?
 		- `sklearn` tools: `OrdinalEncoder`, `DictVectorizer`.
+		- `OrdinalEncoder` works with strings and integers, but don't mix them.
+		- In all these encoders in which a category is mapped to a value, we need to consider the possibility of having new categories in the test split; to avoid problems, use `handle_unknown`: `OrdinalEncoder(handle_unknown='ignore')`
+		- If the ordinal sequence order is not clear, provide it: `categories = ['high school', 'uni']; OrdinalEncoder(categories=categories)`
 	- If a distribution of a numerical variable is very skewed or irregular, we can discretize it  with `pd.cut()`.
 	- There are many more tools: [Preprocessing categorical features](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-categorical-features)
 	- Weight of evidence: If the target is binary and we want to encode categorical features, we can store the target ratios associated to each feature category level.
@@ -452,6 +455,9 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 		- Classification: `StratifiedKFold` to keep class ratios and avoid bias
 	- Define a `Pipeline` with the models from which parameters need to be found/optimized (see `Pipelines` below).
 	- Instantiate and fit `GridSearchCV` with the parameters to be optimized.
+    	- Define correct parameter grid.
+    	- Define `cv = k`; `k`: how many different exclusive validation splits.
+    	- Define correct scoring; beware that not all scores are for multi-class; use one-versus-rest for mult-class, e.g., `roc_auc_ovr`.
 	- **Alternative**: use models with built-in cross-validation: `RidgeCV`, `LassoCV`, `ElasticNetCV`.
 - Model interpretation: see [03_Classification_IBM.md](https://github.com/mxagar/machine_learning_ibm/blob/main/03_Classification/03_Classification_IBM.md)
 	- If the model is interpretable (linear, trees, KNN), plot model parameters to understand what's going on; often it's better than the predictions: 
@@ -465,6 +471,7 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 			- Permutation feature importance: selected feature values are shuffled and difference between predicted targets is evaluated 
 			- Partial Dependency Plots (PDP): all values of a feature are ranged from its minimum to its maximum and the average outcome is computed and plotted.
 - If text reports need to be saved, convert them to figures: `plt.text()`.
+- In production, avoid leaving default parameters to models, because defaults can change. Instead, save parameters in YAML files and load them as dicts; we can pass them to models at instantiation! Of course, dict key-values must be as defined in the model class.
 
 ## Tips for Production
 
@@ -480,12 +487,15 @@ Thus, among others, we should do the following:
 - Persist any transformation objects / encodings / parameters generated.
 - Track and persist any configuration we created.
 - Use seeds whenever any random variables is created.
+- We should have full control over the model parameters; define dictionaries with all params in a YAML and use them at instantiation. We can apply hyperparameter tuning on top, but nothing should be left to use default values, bacause **defaults can change from version to version!**
 - Create python environments and use same software versions in research/production.
 	- Docker containers are a nice option, or at least conda environments.
-- I we don't have access to MLOps tools like [mlflow](https://www.mlflow.org/) and [wandb](https://wandb.ai/site), use `Pipelines` and pack any transformations to them; then, these can be easily packaged and deployed. That implies:
+- I we don't have access to MLOps tools like [mlflow](https://www.mlflow.org/) and [wandb](https://wandb.ai/site), use at least `Pipelines` and pack any transformations to them; then, these can be easily packaged and deployed. That implies:
 	- Using `sklearn` transformers/encoders instead of manually encoding anything,
 	- or `feature_engine` classes: [feature_engine](https://feature-engine.readthedocs.io/en/latest/),
 	- or creating our own functions embedded in derived classes of these, so that they can be added to a `Pipeline` (see above).
+- Complex/hierarchical pipelines: Use `ColumnTransformer` and `make_pipeline`; look for example in [`data_processing.py`](data_processing.py).
+- Avoid leaving default parameters to models, because defaults can change. Instead, save parameters in YAML files and load them as dicts; we can pass them to models at instantiation! Of course, dict key-values must be as defined in the model class.
 - Modularize the code into functions to transfer it to python scripts.
 - Catch errors and provide a robust execution.
 - Log events.
@@ -495,7 +505,7 @@ Thus, among others, we should do the following:
 
 ### Pipelines
 
-In the following, a vanilla example with `Pipeline`:
+In the following, a vanilla example with `Pipeline`; see also the section `Hierarchical Pipelines` in [`data_processing.py`](data_processing.py).
 
 ```python
 # Import necessary Transformers & Co.
@@ -518,7 +528,6 @@ pipe.fit(X_train, y_train)
 pred = pipe.predict(X_test)
 pipe.score(X_test, y_test)
 ```
-
 ## Related Links
 
 - My notes of the [IBM Machine Learning Professional Certificate](https://www.coursera.org/professional-certificates/ibm-machine-learning) from Coursera: [machine_learning_ibm](https://github.com/mxagar/machine_learning_ibm).

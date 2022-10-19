@@ -556,6 +556,14 @@ lb.transform([1, 6]) # array([[1, 0, 0, 0], [0, 0, 0, 1]])
 for column in binary_variables:
     df[column] = lb.fit_transform(df[column])
 
+# Ordinal encoder: there is a ranking order between category levels,
+# we assume distances between categories are as encoded!
+# handle_unknown: we use this flag in case new
+categories = ['high school', 'bachelor', 'masters', 'phd']
+oe = OrdinalEncoder(categories=categories, handle_unknown='ignore')
+df['education_level'] = oe.fit_transform(df['education_level'])
+# ['high school', 'bachelor', 'masters', 'phd'] -> [0, 1, 2, 3]
+
 # Make a feature explicitly categorical (as in R)
 # This is not necessary, but can be helpful, e.g. for ints
 # For strings of np.object, this should not be necessary
@@ -932,6 +940,9 @@ model = model.fit(X_train, y_train)
 param_grid = {'max_depth':range(1, model.tree_.max_depth+1, 2),
               'max_features': range(1, len(model.feature_importances_)+1)}
 # Grid search with cross validation to determine the optimum hyperparameters
+# Notes on the scoring (look also at online docu): 
+# - can be a tring or a callable; accuracy is in general bad, prefer others: 'f1', 'roc_auc'
+# - if multi-class, there are one-versus-rest versions, e.g. 'roc_auc_ovr'
 gt = GridSearchCV(DecisionTreeClassifier(random_state=42),
                   param_grid=param_grid,
                   scoring='accuracy',
@@ -1000,6 +1011,9 @@ param_grid = {'n_estimators': [400], #tree_list,
               'learning_rate': [0.1, 0.01, 0.001, 0.0001],
               'subsample': [1.0, 0.5],
               'max_features': [1, 2, 3, 4]}
+# Notes on the scoring (look also at online docu): 
+# - can be a tring or a callable; accuracy is in general bad, prefer others: 'f1', 'roc_auc'
+# - if multi-class, there are one-versus-rest versions, e.g. 'roc_auc_ovr'
 GV_GBC = GridSearchCV(GradientBoostingClassifier(random_state=42,
                                                  warm_start=True), 
                       param_grid=param_grid, 
@@ -1034,7 +1048,10 @@ param_grid = {'dt__max_depth': [n for n in range(10)],
               'SVM__C':[0.01,0.1,1],
               'SVM__kernel':['linear', 'poly', 'rbf'],
               'knn__n_neighbors':[1,4,8,9]}
-search = GridSearchCV(estimator=SC, param_grid=param_grid,scoring='accuracy')
+# Notes on the scoring (look also at online docu): 
+# - can be a tring or a callable; accuracy is in general bad, prefer others: 'f1', 'roc_auc'
+# - if multi-class, there are one-versus-rest versions, e.g. 'roc_auc_ovr'
+search = GridSearchCV(estimator=SC, param_grid=param_grid, scoring='accuracy')
 search.fit(X_train, y_train)
 search.best_score_ # 1, be aware of the overfitting!
 search.best_params_
@@ -1354,6 +1371,9 @@ params_grid = {
   'class_weight': [{0:0.1, 1:0.9}, {0:0.2, 1:0.8}, {0:0.3, 1:0.7}]
 }
 model = RandomForestClassifier(random_state=rs)
+# Notes on the scoring (look also at online docu): 
+# - can be a tring or a callable; accuracy is in general bad, prefer others: 'f1', 'roc_auc'
+# - if multi-class, there are one-versus-rest versions, e.g. 'roc_auc_ovr'
 grid_search = GridSearchCV(estimator = model, 
                        param_grid = params_grid, 
                        scoring='f1',
@@ -1383,3 +1403,98 @@ def resample(X_train, y_train):
 
 X_smo, y_smo, X_under, y_under = resample(X_train, y_train)
 # Now, fit new model and compute its metrics
+
+### --- Hierarchical Pipelines: ColumnTransformer + make_pipeline + GridSearchCV
+
+import itertools
+import yaml
+from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import OrdinalEncoder, StandardScaler, FunctionTransformer
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.impute import SimpleImputer
+
+# Define treated columns
+categorical_features = ['a', 'b', 'c']
+numerical_features = ['one', 'two']
+nlp_features = ['review']
+
+# Define processing for categorical columns
+# handle_unknown: label encoders need to be able to deal with unknown labesl!
+categorical_transformer = make_pipeline(
+    SimpleImputer(strategy="constant", fill_value=0), OrdinalEncoder(handle_unknown='ignore')
+)
+# Define processing for numerical columns
+numerical_transformer = make_pipeline(
+    SimpleImputer(strategy="median"), StandardScaler()
+)
+# Define processing of NLP/text columns
+# This trick is needed because SimpleImputer wants a 2d input, but
+# TfidfVectorizer wants a 1d input. So we reshape in between the two steps
+reshape_to_1d = FunctionTransformer(np.reshape, kw_args={"newshape": -1})
+nlp_transformer = make_pipeline(
+    SimpleImputer(strategy="constant", fill_value=""),
+    reshape_to_1d,
+    TfidfVectorizer(
+        binary=True,
+        max_features=10
+    )
+)
+
+# Put the 3 tracks together into one pipeline using the ColumnTransformer
+# This also drops the columns that we are not explicitly transforming
+processor = ColumnTransformer(
+    transformers=[
+        ("num", numerical_transformer, numerical_features),
+        ("cat", categorical_transformer, categorical_features),
+        ("nlp1", nlp_transformer, nlp_features),
+    ],
+    remainder="drop",  # This drops the columns that we do not transform
+)
+
+# Get a list of the columns we used
+used_columns = list(itertools.chain.from_iterable([x[2] for x in processor.transformers]))
+
+# In production, avoid leaving default parameters to models,
+# because defaults can change.
+# Instead, save parameters in YAML files and load them as dicts;
+# we can pass them to models at instantiation! 
+# Of course, dict key-values must be as defined in the model class.
+config = dict()
+with open('model_configuration.yaml') as f:
+    config = yaml.safe_load(f)
+
+# Append classifier to processing pipeline.
+# Now we have a full prediction pipeline.
+# Pipeline needs to be used here.
+# The result is a pipeline with two high-level elements: processor and classifier.
+# Note that we pass the configuration dictionary to the model;
+# however, this should be modified in the grid search.
+pipe = Pipeline(
+    steps=[
+        ("processor", processor),
+        ("classifier", RandomForestClassifier(config)),
+    ]
+)
+
+# Define Grid Search: parameters to try, cross-validation size
+param_grid = {
+    'classifier__n_estimators': [100, 150, 200],
+    'classifier__max_features': ['sqrt', 'log2'],
+    'classifier__criterion': ['gini', 'entropy'],
+    'classifier__max_depth': [None]+[n for n in range(5,20,5)]
+}
+# Grid search
+search = GridSearchCV(estimator=pipe,
+                      param_grid=param_grid,
+                      cv=3,
+                      scoring='roc_auc_ovr') # ovr = one versus rest, to make roc_auc work with multi-class
+# Find best hyperparameters and best estimator pipeline
+search.fit(X, y)
+rfc_pipe = search.best_estimator_
+
+print(search.best_score_)
+print(search.best_params_)
+
