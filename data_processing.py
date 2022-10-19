@@ -1475,7 +1475,7 @@ with open('model_configuration.yaml') as f:
 pipe = Pipeline(
     steps=[
         ("processor", processor),
-        ("classifier", RandomForestClassifier(config)),
+        ("classifier", RandomForestClassifier(**config)),
     ]
 )
 
