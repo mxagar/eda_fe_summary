@@ -163,6 +163,10 @@ df.loc[:, keep].head()
 index_bool = np.isin(df.columns, keep)
 df_BMX = df.iloc[:,index_bool]
 
+# Filtering with between
+idx = df['price'].between(min_price, max_price)
+df = df[idx].copy()
+
 # Multiple filtering: Several conditions
 waist_median = df_BMX['BMXWAIST'].median()
 condition1 = df_BMX['BMXWAIST'] > waist_median
