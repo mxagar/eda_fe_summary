@@ -237,14 +237,14 @@ List of the most important Scikit-Learn Transformers:
   - `sklearn.preprocessing.KBinsDiscretizer`: quantization, partition of continuous variables into discrete values; different strategies available: constant-width bins (uniform), according to quantiles, etc.
 - [Variable Transformation](https://scikit-learn.org/stable/modules/preprocessing.html#preprocessing-transformer)
   - `sklearn.preprocessing.PowerTransformer`: Yeo-Johnson, Box-Cox
-  - `sklearn.preprocessing.FunctionTransformer`: It constructs a transformer from an arbitrary callable function
+  - `sklearn.preprocessing.FunctionTransformer`: It constructs a transformer from an arbitrary callable function! That's very useful! An example is shown in my repository [ml_pipeline_rental_prices](https://github.com/mxagar/ml_pipeline_rental_prices)/`train_random_forest/run.py`.
   - ...
 - [Variable Combination](https://scikit-learn.org/stable/modules/preprocessing.html#polynomial-features)
   - `sklearn.preprocessing.PolynomialFeatures`: given a degree d, obtain polynomial features up to the degree: x_1, x_2, d=2 -> x_1, x_2, x_1*x_2, x_1^2, x_2^2
 - [Text Vectorization](https://scikit-learn.org/stable/modules/feature_extraction.html#text-feature-extraction)
   - `sklearn.feature_extraction.text.CountVectorizer`: create a vocabulary of the corpus and populate the document-term matrix `document x word` with count values.
   - `sklearn.feature_extraction.text.TfidfTransformer`: create the document-term matrix by scaling with in-document an in-corpus frequencies.
-
+ 
 ### Creation of Transformer Classes
 
 Manual definition:
@@ -487,14 +487,18 @@ Thus, among others, we should do the following:
 - Persist any transformation objects / encodings / parameters generated.
 - Track and persist any configuration we created.
 - Use seeds whenever any random variables is created.
-- We should have full control over the model parameters; define dictionaries with all params in a YAML and use them at instantiation. We can apply hyperparameter tuning on top, but nothing should be left to use default values, bacause **defaults can change from version to version!**
+- We should have full control over the model parameters; define dictionaries with all params in a YAML and use them at instantiation. We can apply hyperparameter tuning on top, but nothing should be left to use default values, because **defaults can change from version to version!**
 - Create python environments and use same software versions in research/production.
 	- Docker containers are a nice option, or at least conda environments.
 - I we don't have access to MLOps tools like [mlflow](https://www.mlflow.org/) and [wandb](https://wandb.ai/site), use at least `Pipelines` and pack any transformations to them; then, these can be easily packaged and deployed. That implies:
 	- Using `sklearn` transformers/encoders instead of manually encoding anything,
 	- or `feature_engine` classes: [feature_engine](https://feature-engine.readthedocs.io/en/latest/),
-	- or creating our own functions embedded in derived classes of these, so that they can be added to a `Pipeline` (see above).
+	- or creating our own functions embedded in derived classes of these, so that they can be added to a `Pipeline` (see above: [Creation of Transformer Classes](#creation-of-transformer-classes)),
+	- or with `FunctionTransformer`, which converts any custom function into a transformer.
 - Complex/hierarchical pipelines: Use `ColumnTransformer` and `make_pipeline`; look for example in [`data_processing.py`](data_processing.py).
+- The inference artifact should be a *hierarchical* `Pipeline` composed by two items at the highest level:
+	- `processing`: all the processing should be packed into a `Pipeline` using `ColumnTransformer`, as noted above.
+	- `classifier` or `regressor`: the model.
 - Avoid leaving default parameters to models, because defaults can change. Instead, save parameters in YAML files and load them as dicts; we can pass them to models at instantiation! Of course, dict key-values must be as defined in the model class.
 - Modularize the code into functions to transfer it to python scripts.
 - Catch errors and provide a robust execution.
