@@ -18,20 +18,22 @@ For more information on the motivation of the guide, see my [blog post](https://
 ### Table of Contents
 
 - [Data Processing: A Practical Guide](#data-processing-a-practical-guide)
-		- [Table of Contents](#table-of-contents)
-	- [General](#general)
-	- [Data Cleaning](#data-cleaning)
-	- [Exploratory Data Analysis](#exploratory-data-analysis)
-	- [Feature Engineering](#feature-engineering)
-		- [Scikit-Learn Transformers](#scikit-learn-transformers)
-		- [Creation of Transformer Classes](#creation-of-transformer-classes)
-	- [Feature Selection](#feature-selection)
-	- [Hypothesis Tests](#hypothesis-tests)
-	- [Data Modelling and Evaluation](#data-modelling-and-evaluation)
-	- [Tips for Production](#tips-for-production)
-		- [Pipelines](#pipelines)
-	- [Related Links](#related-links)
-	- [Authorship](#authorship)
+    - [Table of Contents](#table-of-contents)
+  - [General](#general)
+  - [Data Cleaning](#data-cleaning)
+  - [Exploratory Data Analysis](#exploratory-data-analysis)
+  - [Feature Engineering](#feature-engineering)
+    - [Scikit-Learn Transformers](#scikit-learn-transformers)
+    - [Creation of Transformer Classes](#creation-of-transformer-classes)
+    - [Natural Languange Processing (NLP): Extracting Text Features](#natural-languange-processing-nlp-extracting-text-features)
+  - [Feature Selection](#feature-selection)
+  - [Hypothesis Tests](#hypothesis-tests)
+  - [Data Modeling and Evaluation (Supervised Learning)](#data-modeling-and-evaluation-supervised-learning)
+  - [Dataset Structure: Unsupervised Learning](#dataset-structure-unsupervised-learning)
+  - [Tips for Production](#tips-for-production)
+    - [Pipelines](#pipelines)
+  - [Related Links](#related-links)
+  - [Authorship](#authorship)
 
 ## General
 
@@ -310,6 +312,10 @@ class MeanImputer(BaseEstimator, TransformerMixin):
         return X
 ```
 
+### Natural Languange Processing (NLP): Extracting Text Features
+
+
+
 ## Feature Selection
 
 - Less features prevent overfitting and are easier to explain.
@@ -352,52 +358,48 @@ class MeanImputer(BaseEstimator, TransformerMixin):
 	- If assumptions broken, consider equivalent parametric tests.
 	- Post-hoc tests when >2 levels (e.g., after ANOVA): apply Bonferroni correction if T tests used: `alpha <- alpha / num_tests`.
 
-## Data Modelling and Evaluation
+## Data Modeling and Evaluation (Supervised Learning)
 
-Data modelling is out of the scope of this guide, because the goal is to focus on the data processing and analysis part prior to creating models. However, some basic modelling steps are compiled, since they often provide feedback for new iterations in the data processing.
+Data modeling is out of the scope of this guide, because the goal is to focus on the data processing and analysis part prior to creating models. However, some basic modeling steps are compiled, since they often provide feedback for new iterations in the data processing.
 
-- Most common approaches to start with tabular data:
-	- Supervised learning:
-		- Regression (focusing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
-		- Classification: **note: in `sklearn` classification models have a regression class, too!**
-			- `LogisticRegression` (use `penalty` for regularization): not only for binary classification in Scikit-Learn; nice log-odds interpretation of coefficients.
-			- `KNearestNeighbors`
-				- Easy interpretation of similar points, but complete dataset is used for inference, thus small and scaled datasets should be used (e.g., `10000 x 50`).
-				- Use the elbow method to deduce the optimum `K`: try different `K` values in a loop and register the error metric with the test/validation split; then take the `K` of the best metric.
-			- Support Vector Machines (SVMs): `sklearn.svm.SVC`, `LinearSVC`
-				- Usually non-linear SVMs are used with a kernel for medium datasets, e.g., with Gaussian kernels (`rbf`)
-					- Example: `rbfSVC = SVC(kernel='rbf', gamma=1.0, C=10.0)`
-					- `gamma` and `C` need to be chosen; the smaller they are, the larger the regularization (less complex model)
-					- `gamma ~ 1/sigma^2`
-					- `C = 1 / lambda`
-				- However, non-linear SVMs are time-intensive as the number of features and data-points increase, because kernels are used based on the similarities of a point to all the landmarks in the dataset. Alternative: use approximate kernels with sampling and linear SVMs
-				- Approximate kernels such as `Nystroem` and `RBFSampler` are used to transform the `X` with sampled approximative kernels; then, we use a `LinearSVC` or `SGDClassifier` with the transformed dataset; that is much faster for large datasets with many features.
-				- Use `GridSearchCV` to detect the optimum hyperparameters.
-			- `DecisionTreeClassifier`
-				- Decision trees are nice to interpret when we plot the trees
-				- However, they overfit the dataset if no constraints are set to the tree; therefore, the usual approach is:
-					- Create a tree with overfitting and extract its parameters: `max_depth`, etc.
-					- Run a `GridSearchCV` with the parameter ranges given by the maximum values of the overfit tree to perform hyperparmeter tuning.
-					- We can perform regressions with `DecisionTreeRegressor`: a mean value for each leaf node is computed
-			- Ensemble Methods: they beat usually any other method with tabular data.
-				- Most common ensemble methods:
-				  - Bagging = bootstrapped aggregating: several independent trees are fitted using samples with replacement; since independent, parallelized.
-				    - `BaggingClassifier`: overfitting can occur because trees are correlated (due to sampling with replacement).
-				    - `RandomForestClassifier`: max number of features selected randomly, which decreases correlation; thus, no overfitting.
-				  - Boosting: complete dataset used in successive weak or simple base learners which improve by penalizing residuals (miss-classified points). Since we're improving the previous models, we risk overfitting, thus we need to do grid search.
-				    - `AdaBoostClassifier`: we can select our weak learner model; the loss is exponential.
-				    - `GradientBoostingClassifier`: weak learners are trees; the loss is not as steep and it performs better with outliers.
-				  - Voting / Stacking: we combine several models and the final classification is a hard or soft average (i.e., majority of classes or average probability). Use them only if they are significantly better than the single models, because they introduce complexity, i.e., they are more difficult to handle and they overfit. So, if we use them, apply grid search!
-				    - `VotingClassifier`: voting is done.
-				    - `StackingClassifier`: a classifier is appended to give the final result.
-				- `AdaBoostClassifier` can take different base learners, not only trees.
-				- `RandomForestClassifier` forests do not overfit with more learners/trees, the performance plateaus; they are fast, because the trees are independently trained.
-				- `GradientBoostingClassifier` is better than `AdaBoostClassifier`, but it takes longer to train it; try the `xgboost` library instead of `sklearn`.
-				- Boosting overfits, thus, perform always a grid search! 
-				- **Advice: stick to `RandomForestClassifier` or `GradientBoostingClassifier`with grid search; also, try `xgboost`.**
-	- Unsupervised learning:
-		- Clustering: `KMeans`.
-		- Dimensionality reduction: `PCA`.
+- Most common approaches to start with tabular data (supervised learning):
+    - Regression (focusing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
+    - Classification: **note: in `sklearn` classification models have a regression class, too!**
+    	- `LogisticRegression` (use `penalty` for regularization): not only for binary classification in Scikit-Learn; nice log-odds interpretation of coefficients.
+    	- `KNearestNeighbors`
+    		- Easy interpretation of similar points, but complete dataset is used for inference, thus small and scaled datasets should be used (e.g., `10000 x 50`).
+    		- Use the elbow method to deduce the optimum `K`: try different `K` values in a loop and register the error metric with the test/validation split; then take the `K` of the best metric.
+    	- Support Vector Machines (SVMs): `sklearn.svm.SVC`, `LinearSVC`
+    		- Usually non-linear SVMs are used with a kernel for medium datasets, e.g., with Gaussian kernels (`rbf`)
+    			- Example: `rbfSVC = SVC(kernel='rbf', gamma=1.0, C=10.0)`
+    			- `gamma` and `C` need to be chosen; the smaller they are, the larger the regularization (less complex model)
+    			- `gamma ~ 1/sigma^2`
+    			- `C = 1 / lambda`
+    		- However, non-linear SVMs are time-intensive as the number of features and data-points increase, because kernels are used based on the similarities of a point to all the landmarks in the dataset. Alternative: use approximate kernels with sampling and linear SVMs
+    		- Approximate kernels such as `Nystroem` and `RBFSampler` are used to transform the `X` with sampled approximative kernels; then, we use a `LinearSVC` or `SGDClassifier` with the transformed dataset; that is much faster for large datasets with many features.
+    		- Use `GridSearchCV` to detect the optimum hyperparameters.
+    	- `DecisionTreeClassifier`
+    		- Decision trees are nice to interpret when we plot the trees
+    		- However, they overfit the dataset if no constraints are set to the tree; therefore, the usual approach is:
+    			- Create a tree with overfitting and extract its parameters: `max_depth`, etc.
+    			- Run a `GridSearchCV` with the parameter ranges given by the maximum values of the overfit tree to perform hyperparmeter tuning.
+    			- We can perform regressions with `DecisionTreeRegressor`: a mean value for each leaf node is computed
+    	- Ensemble Methods: they beat usually any other method with tabular data.
+    		- Most common ensemble methods:
+    		  - Bagging = bootstrapped aggregating: several independent trees are fitted using samples with replacement; since independent, parallelized.
+    		    - `BaggingClassifier`: overfitting can occur because trees are correlated (due to sampling with replacement).
+    		    - `RandomForestClassifier`: max number of features selected randomly, which decreases correlation; thus, no overfitting.
+    		  - Boosting: complete dataset used in successive weak or simple base learners which improve by penalizing residuals (miss-classified points). Since we're improving the previous models, we risk overfitting, thus we need to do grid search.
+    		    - `AdaBoostClassifier`: we can select our weak learner model; the loss is exponential.
+    		    - `GradientBoostingClassifier`: weak learners are trees; the loss is not as steep and it performs better with outliers.
+    		  - Voting / Stacking: we combine several models and the final classification is a hard or soft average (i.e., majority of classes or average probability). Use them only if they are significantly better than the single models, because they introduce complexity, i.e., they are more difficult to handle and they overfit. So, if we use them, apply grid search!
+    		    - `VotingClassifier`: voting is done.
+    		    - `StackingClassifier`: a classifier is appended to give the final result.
+    		- `AdaBoostClassifier` can take different base learners, not only trees.
+    		- `RandomForestClassifier` forests do not overfit with more learners/trees, the performance plateaus; they are fast, because the trees are independently trained.
+    		- `GradientBoostingClassifier` is better than `AdaBoostClassifier`, but it takes longer to train it; try the `xgboost` library instead of `sklearn`.
+    		- Boosting overfits, thus, perform always a grid search! 
+    		- **Advice: stick to `RandomForestClassifier` or `GradientBoostingClassifier`with grid search; also, try `xgboost`.**
 - Always evaluate with a test split that never was exposed to the model
 	- Regression: R2, RMSE.
 	- Classification: confusion matrix, accuracy, precision, recall, F1, ROC curve (AUC), Precision-Recall curve (for unbalanced classes).
@@ -473,6 +475,19 @@ Data modelling is out of the scope of this guide, because the goal is to focus o
 - If text reports need to be saved, convert them to figures: `plt.text()`.
 - In production, avoid leaving default parameters to models, because defaults can change. Instead, save parameters in YAML files and load them as dicts; we can pass them to models at instantiation! Of course, dict key-values must be as defined in the model class.
 
+## Dataset Structure: Unsupervised Learning
+
+Unsupervised learning is out of the scope of this guide, because the goal is to focus on the data processing and analysis part. However, some basic techniques related to dataset structure identification are compiled, since they can be very helpful while performing EDA or feature engineering. All in all, unsupervised learning techniques for tabular data can be classified as (1) **clustering** techniques and (2) **dimensionality reduction** techniques for either improving modeling or visualizing the dataset. In both cases, **distance metrics** are fundamental.
+
+- Distance metrics
+- Clustering
+    - `KMeans`
+- Dimensionality Reduction
+    - Curse of dimensionality
+    - `PCA`
+    - `NMF`
+    - Manifold learning
+
 ## Tips for Production
 
 Software engineering for production deployments is out of the scope of this guide, because the goal is to focus on the data processing and analysis; however, some minor guidelines are provided. Going from a research/development environment to a production environment implies we need to:
@@ -532,6 +547,7 @@ pipe.fit(X_train, y_train)
 pred = pipe.predict(X_test)
 pipe.score(X_test, y_test)
 ```
+
 ## Related Links
 
 - My notes of the [IBM Machine Learning Professional Certificate](https://www.coursera.org/professional-certificates/ibm-machine-learning) from Coursera: [machine_learning_ibm](https://github.com/mxagar/machine_learning_ibm).

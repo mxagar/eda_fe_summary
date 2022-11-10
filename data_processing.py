@@ -13,7 +13,8 @@ Table of contents:
 - Feature Engineering
 - Feature Selection
 - Inferences & Hypothesis Testings
-- Data Modelling
+- Data Modeling (Supervised Learning)
+- Dataset Structure (Unsupervised Learning)
 
 Author: Mikel Sagardia.
 Date: 2016 - 2022.
@@ -80,7 +81,7 @@ pd.pandas.set_option('display.max_columns', None)
 ##### -- 
 
 df = pd.concat([X,y],axis=1)
-df.to_csv('data/dataset.csv',sep=',', header=True, index=False)
+df.to_csv('data/dataset.csv', sep=',', header=True, index=False)
 df = pd.read_csv('data/dataset.csv')
 
 # Serialize and save any python object, e.g., a model/pipeline
@@ -656,6 +657,7 @@ X_test = pd.DataFrame(
 joblib.dump(scaler, filepath+'minmax_scaler.joblib')
 
 
+
 ##### -- 
 ##### -- Feature Selection
 ##### -- 
@@ -872,7 +874,7 @@ result = analysis.solve_power(effect, power=power, nobs1=None, ratio=1.0, alpha=
 print('Sample Size: %.3f' % result)
 
 ##### -- 
-##### -- Data Modelling
+##### -- Data Modeling (Supervised Learning)
 ##### -- 
 
 ### --- Summary of the most important models
@@ -1515,4 +1517,8 @@ rfc_pipe = search.best_estimator_
 
 print(search.best_score_)
 print(search.best_params_)
+
+### -- 
+### -- Dataset Structure (Unsupervised Learning)
+### -- 
 
