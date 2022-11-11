@@ -656,7 +656,140 @@ X_test = pd.DataFrame(
 # Always save the scaler + any transformer object + parameters!
 joblib.dump(scaler, filepath+'minmax_scaler.joblib')
 
+### --- Natural Languange Processing (NLP): Extracting Text Features
 
+## -- Create a vocabulary manually
+
+from string import punctuation # '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+from collections import Counter
+
+text =  """This story is about surfing.
+        Catching waves is fun!
+        Surfing's a popular water sport.
+        """
+
+# Remove punctuation
+for char in punctuation:
+    text = text.replace(char, "")
+
+# Count word appearances
+# We can do that for each class/sentiment
+# and then compute the ratios for each word!
+word_counts = Counter()
+for word in text.lower().split(): # split removing white spaces, \n, etc.
+    word_counts[word] += 1
+
+# Index -> Word (Vocabulary)
+index2word = list(set(word_counts.keys()))
+
+# Word -> Index
+word2index = {}
+for i,word in enumerate(index2word):
+    word2index[word] = i
+
+# Vocabulary size: number of words
+n = len(index2word)
+
+## -- Tokenize with NLTK
+
+# Built-in string split: it separates in white spaces by default
+text = "Dr. Smith arrived late."
+word = text.split() # ['Dr.', 'Smith', 'arrived', 'late.']
+
+# NLTK: More meaningful word tokenization
+from nlt.tokenize import word_tokenize
+words = word_tokenize(text) # ['Dr.', 'Smith', 'arrived', 'late', '.']
+
+# NLTK: Sentence splits or tokenization
+from nlt.tokenize import sent_tokenize
+text = "Dr. Smith arrived late. However, the conference hadn't started yet."
+words = sent_tokenize(text)
+# ['Dr. Smith arrived late.',
+#  'However, the conference hadn't started yet.']
+
+# SpaCy: More meaningful word tokenization
+import spacy
+nlp = spacy.load('en_core_web_sm')
+doc = nlp(text)
+words = [token.text for token in doc]
+
+## -- NLP Processing with SpaCy
+
+import spacy
+
+# We load our English model
+nlp = spacy.load('en_core_web_sm')
+
+# Create a _Doc_ object:
+# the nlp model processes the text 
+# and saves it structured in the Doc object
+# u: Unicode string (any symbol, from any language)
+doc = nlp(u'Tesla is looking at buying U.S. startup for $6 million')
+
+# Print each token separately
+# Tokens are word representations, unique elements
+# Note that spacy does a lot of identification work already
+# $ is a symbol, U.S. is handled as a word, etc.
+for token in doc:
+    # token.text: raw text
+    # token.pos_: part of speech: noun, verb, punctuation... (MORPHOLOGY)
+    # token.dep_: syntactic dependency: subject, etc. (SYNTAX)
+    # token.lemma_: lemma
+    # token.is_stop: is the token a stop word?
+    print(token.text, token.pos_, token.dep_)
+
+# Loop in sentences
+for sent in doc.sents:
+    print(sent)
+
+# Print the set of SpaCy's default stop words
+print(nlp.Defaults.stop_words)
+
+# Named entities (NER)
+for ent in doc.ents:
+    print(ent.text, ent.label_, str(spacy.explain(ent.label_)))
+
+## -- CountVectorizer, TfidfVectorizer
+
+import numpy as np
+import pandas as pd
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+# We take only the text column
+# Note that we don't need to generate an vocabulary manually
+# this is done automatically by CountVectorizer or TfidfVectorizer!
+
+# Custom text processing function
+def preprocess_text(text):
+    text = text.lower()
+    # Remove all digits 
+    text = re.sub(r'\d+', '', text)
+    return text
+
+# Create the DTM or frequency matrix with count values
+# max_features: top features taken, according to their frequency in corpus
+# preprocessor: we can pass any custom function we'd like
+cv = CountVectorizer(max_features = 500, preprocessor = preprocess_text)
+cv_mat = cv.fit_transform(X)
+# CountVectorizer.get_feature_names_out(): terms/tokens
+cv_df = pd.DataFrame(cv_mat.toarray(), columns = cv.get_feature_names_out())
+# 1586 rows × 500 columns
+
+cv.vocabulary_ # term - index
+cv.stop_words_ # words that were ignored due to several reasons...
+
+# TF-IDF
+tfidf = TfidfTransformer()
+tfidf_mat = tfidf.fit_transform(X)
+# Convert to a dataframe
+# TfidfTransformer normalizes each row to length 1
+tfidf_df = pd.DataFrame(tfidf_mat.toarray(), columns = cv.get_feature_names_out())
+# 1586 rows × 500 columns
+
+tfidf.vocabulary_ # term - index
+tfidf.idf_ # inverse document frequency vector
+tfidf.stop_words_ # words that were ignored due to several reasons...
 
 ##### -- 
 ##### -- Feature Selection
@@ -1522,3 +1655,449 @@ print(search.best_params_)
 ### -- Dataset Structure (Unsupervised Learning)
 ### -- 
 
+### --- Clustering Commands Applied with K-Means
+
+# Alternative with mini-batches: MiniBatchKMeans
+from sklearn.cluster import KMeans
+
+# Parameter: n_clusters
+# 'k-means++' initializes first centroids far from each other
+kmeans = KMeans(n_clusters=3,
+                init='k-means++')
+# Fit dataset
+kmeans.fit(X1)
+# We can predict the clusters of another dataset!
+y_pred = kmeans.predict(X2)
+
+# Inertia: inertia_k = sum(i = 1:n; (x_i - C_k)^2)
+kmeans.inertia_
+# Cluster centers: C_k
+km.cluster_centers_
+# Labels: C_k assigned to each data point
+km.labels_
+
+# Elbow method: fit clusterings with different number of centroids
+# and take the one from which metric (e.g., inertia) doesn't improve significantly
+inertia = []
+clusters = list(range(10))
+for k in clusters:
+    kmeans = KMeans(n_clusters=k,
+                    init='k-means++',
+                    random_state=10) # always define it!
+    kmeans.fit(X1)
+    inertia.append(kmeans.inertia_)
+# Plot k vs inertia
+plt.plot(clusters,inertia)
+plt.scatter(clusters,inertia)
+plt.xlabel('Number of Clusters, k')
+plt.ylabel('Inertia');
+
+# Plot clustered data in 2D
+def display_cluster(X,km=[],num_clusters=0):
+    color = 'brgcmyk'
+    alpha = 0.5
+    s = 20
+    if num_clusters == 0:
+        plt.scatter(X[:,0],X[:,1], c=color[0], alpha=alpha, s=s)
+    else:
+        for i in range(num_clusters):
+            plt.scatter(X[km.labels_==i,0], X[km.labels_==i,1], c=color[i], alpha=alpha, s=s)
+            plt.scatter(km.cluster_centers_[i][0], km.cluster_centers_[i][1], c=color[i], marker = 'x', s = 100)
+    plt.show()
+
+### --- Other Clustering Algorithms
+
+## Hierarchical Agglomerative Clustering
+
+from sklearn.cluster import AgglomerativeClustering
+
+# We can decide the number of clusters or a distance threshold as criterium:
+# distance_threshold, n_clusters
+# Linkage:
+# 'single': distance between closest points in different clusters
+# 'complete': compute the furthest point pairs in different clusters and select the minimum pair
+# 'average': distances between cluster centroids
+# 'ward': pair which minimizes the inertia is merged; this is similar to K-means
+agg = AgglomerativeClustering(  n_clusters=3, 
+                                affinity='euclidean', # distance metric
+                                linkage='ward')
+agg.fit(X1)
+y_pred = agg.predict(X2)
+
+## DBSCAN
+
+from sklearn.cluster import DBSCAN
+
+# Parameters:
+# - Distance metric.
+# - epsilon: radius of local neighborhood
+# - min_samples: number of samples in neighborhood for a point to be considered as a core poin
+db = DBSCAN(eps=3,
+            metric='euclidean',
+            min_samples=3)
+db.fit(X)
+# You cannot call predict,
+# instead, you get the clusters for the current dataset 
+# labels: -1, 0, 1, 2, ...
+# Noisy samples are given the label -1
+clusters = db.labels_
+
+## Mean Shift
+
+from sklearn.cluster import MeanShift, estimate_bandwidth
+
+# Estimate the bandwidth, parameters:
+# - X: (n_samples, n_features)
+# - quantile: float, default=0.3 Should be between [0, 1]; 0.5 = median of all pairwise distances used.
+# - n_samples: int, number of samples to be used; if not given, all samples used.
+bandwidth = estimate_bandwidth(X1, quantile=.06, n_samples=3000)
+
+# Mean Shift, parameters:
+# - max_itert: (default=300) maximum number of iterations per seed point, if not converged.
+# - bin_seeding :if True, initial kernel locations are not locations of all points, but rather the location of the discretized version of points.
+ms = MeanShift(bandwidth=bandwidth,bin_seeding=True)
+ms.fit(X1)
+
+# Manual bandwidth
+ms = MeanShift(bandwidth=2)
+ms.fit(X1)
+clusters = ms.predict(X2)
+
+# Get labels for each data point
+labels = ms.labels_
+# Get all unique clusters
+np.unique(labeled) # array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11])
+# Get cluster centers
+ms.cluster_centers_ # (12, 3) array
+
+
+### --- Clustering for Image Compression
+
+img = plt.imread('peppers.jpg', format='jpeg')
+plt.imshow(img)
+plt.axis('off')
+
+# Each pixel with its [R,G,B] values becomes a row
+# -1 = img.shape[0]*img.shape[1], because we leave the 3 channels
+# as the second dimension
+img_flat = img.reshape(-1, 3)
+
+img.shape # (480, 640, 3)
+img_flat.shape # (307200, 3)
+
+# Note that in reality we have 256^3 possible colors = 16,777,216
+# but not all of them are used.
+# All the unique/used colors
+len(np.unique(img_flat,axis=0)) # 98452
+
+# K=8 clusters: we allow 8 colors
+kmeans = KMeans(n_clusters=8, random_state=0).fit(img_flat)
+
+# Loop for each cluster center
+# Assign to all pixels with the cluster label
+# the color of the cluster == the cluster centroid
+img_flat2 = img_flat.copy()
+for i in np.unique(kmeans.labels_):
+    img_flat2[kmeans.labels_==i,:] = kmeans.cluster_centers_[i]
+
+img2 = img_flat2.reshape(img.shape)
+plt.imshow(img2)
+plt.axis('off');
+
+### --- Clustering / Anomaly Detection: Gaussian Mixtures Model
+
+from sklearn.mixture import GaussianMixture
+
+# covariance_type
+# full: each component has its own general covariance matrix.
+# tied: all components share the same general covariance matrix.
+# diag: each component has its own diagonal covariance matrix.
+# spherical: each component has its own single variance.
+gmm = GaussianMixture(n_components=3,
+                      covariance_type='tied',
+                      init_params='kmeans')
+gmm.fit(X1)
+
+# We can get labels or another dataset
+labels = gmm.predict(X2)
+# ... or probabilities!
+# Probabilities make possible a "soft" cluster choice
+# or ANOMALY DETECTION: if data point has low probs
+# for all clusters, it's an outlier
+probs = GMM.predict_proba(X2)
+
+# Extract model parameters
+gmm.weights_ # weights of each mixture components
+gmm.means_ # (n_components, n_features)
+gmm.covariances_ # spread, size depends on covariance_type
+
+### --- Clustering as Feature Engineering
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import StratifiedShuffleSplit
+
+# Does it the number of clusters have an effect? Steps to see that:
+# Create 10 strata
+# Create the basis training set from by taking float_columns.
+# For n = 1..20, fit a KMeans algorithim with n clusters.
+# Add data point cluster as feature, and one-hot-encode it.
+# Fit 10 Logistic Regression models (one for each stratum)
+# and compute the average roc-auc-score.
+# Plot the average roc-auc scores.
+
+# Create 10 strata
+sss = StratifiedShuffleSplit(n_splits=10, random_state=6532)
+
+# Given X, y, and an estimator
+# Compute the average ROC in the 10 stratifications
+def get_avg_roc_10splits(estimator, X, y):
+    roc_auc_list = []
+    for train_index, test_index in sss.split(X, y):
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+        y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+        estimator.fit(X_train, y_train)
+        y_predicted = estimator.predict(X_test)
+        y_scored = estimator.predict_proba(X_test)[:, 1]
+        roc_auc_list.append(roc_auc_score(y_test, y_scored))
+    return np.mean(roc_auc_list)
+
+# Apply K-means with n clusters
+# Then one-hot-encode them
+def create_kmeans_columns(n):
+    km = KMeans(n_clusters=n)
+    km.fit(X_basis)
+    km_col = pd.Series(km.predict(X_basis))
+    km_cols = pd.get_dummies(km_col, prefix='kmeans_cluster')
+    return pd.concat([X_basis, km_cols], axis=1)
+
+# New target: good quality wine vs not good quality wine
+y = (data['quality'] > 7).astype(int)
+# Basis X: all float collumns without kmeans cluster ids
+X_basis = df[float_columns]
+
+# Create 10 LR models for each number of clusters n
+# Get average ROC for each n
+estimator = LogisticRegression()
+ns = range(1, 21)
+roc_auc_list = [get_avg_roc_10splits(estimator, create_kmeans_columns(n), y)
+                for n in ns]
+
+# Plot: n vs average ROC
+ax = plt.axes()
+ax.plot(ns, roc_auc_list)
+ax.set(
+    xticklabels= ns,
+    xlabel='Number of clusters as features',
+    ylabel='Average ROC-AUC over 10 iterations',
+    title='KMeans + LogisticRegression'
+)
+ax.grid(True)
+
+### --- Distance metrics
+
+from sklearn.metrics import jaccard_score
+from sklearn.metrics.pairwise import (cosine_distances,
+                                      paired_euclidean_distances,
+                                      paired_manhattan_distances,
+                                      cosine_similarity)
+
+# This function will allow us to find the average distance between two sets of data
+def avg_distance(X1, X2, distance_func):
+    from sklearn.metrics import jaccard_score
+    #print(distance_func)
+    res = 0
+    for x1 in X1:
+        for x2 in X2:
+            if distance_func == jaccard_score: # the jaccard_score function only returns jaccard_similarity
+                res += 1 - distance_func(x1, x2)
+            else:
+                res += distance_func(x1, x2)
+    return res / (len(X1) * len(X2))
+
+
+# Jaccard distance for categorical datasets
+df.columns # All categorical, even age
+# 'Class', 'age', 'menopause', 'tumor-size', 'inv-nodes',
+# 'node-caps', 'deg-malig', 'breast', 'breast-quad', 'irradiat'
+
+print(sorted(df['age'].unique()))
+# ['20-29', '30-39', '40-49', '50-59', '60-69', '70-79']
+
+# One-hot encode all columns except age
+from sklearn.preprocessing import OneHotEncoder
+OH = OneHotEncoder()
+X = OH.fit_transform(df.loc[:, df.columns != 'age']).toarray()
+
+# Take two strata: two age groups
+X30to39 = X[df[df.age == '30-39'].index]
+X60to69 = X[df[df.age == '60-69'].index]
+X30to39.shape, X60to69.shape
+# ((36, 39), (57, 39))
+
+avg_distance(X30to39, X30to39, jaccard_score)
+# 0.6435631883548536
+
+### --- Dimensionality Reduction: PCA
+
+from sklearn.decomposition import PCA
+
+# Imagine our dataset has n=20 features and m>n samples
+# and we want to reduce it to k=3 features; we apply PCA/SVD:
+# X_(mxn) = U_(mxm) * S_(mxn) * V^T_(nxn)
+# X_hat_(mxn) = U_(mxk) * S_(kxk) * V^T_(kxn)
+# IMPORTANT: X must be scaled, or all features in similar ranges!
+pca = PCA(n_components=3) # final number of components we want
+X_hat = pca.fit_transform(X)
+
+# We can get many information from pca
+# Principal axes in feature space: V^T, (n_components, features=X.shape[1])
+pca.components_
+# Variance ratio of each component
+pca.explained_variance_ratio_
+pca.explained_variance_ratio_.sum() # must be 1
+# Variance of each component
+pca.explained_variance_
+
+
+### --- Dimensionality Reduction: Kernel PCA with GridSearchCV
+
+# In this example we use KernelPCA,
+# which is a non-linear dimensionality reduction
+# through the use of kernels.
+# The goal is to show how we can perform grid search to find the best
+# parameters.
+from sklearn.decomposition import KernelPCA
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_squared_error
+
+# Custom scorer:
+# We want to find the best parameters for kernel PCA
+# We can use GridSearchCV,
+# but a custom scoring function needs to be defined.
+# The score is the opposite of the error,
+# so we compute the error between the original and the
+# inverse transformed dataset
+# and use its negative value
+def scorer(pcamodel, X, y=None):
+
+    try:
+        X_val = X.values
+    except:
+        X_val = X
+        
+    # Calculate and inverse transform the data
+    data_inv = pcamodel.fit(X_val).transform(X_val)
+    data_inv = pcamodel.inverse_transform(data_inv)
+    
+    # The error calculation
+    mse = mean_squared_error(data_inv.ravel(), X_val.ravel())
+    
+    # Larger values are better for scorers, so take negative value
+    return -1.0 * mse
+
+# The grid search parameters
+# kernel: 'rbf' = Gaussian
+# gamma: parameter for the Guassian (sigma), how complex/curvy the boundary should be
+param_grid = {'gamma':[0.001, 0.01, 0.05, 0.1, 0.5, 1.0],
+              'n_components': [2, 3, 4]}
+
+# The grid search
+kernelPCA = GridSearchCV(KernelPCA(kernel='rbf', fit_inverse_transform=True),
+                         param_grid=param_grid,
+                         scoring=scorer,
+                         n_jobs=-1)
+kernelPCA = kernelPCA.fit(X)
+
+# Best estimator
+kernelPCA.best_estimator_
+
+### --- Dimensionality Reduction: MDS, TSNE
+
+# Create an MDS embedding
+# n_componenets: dimension of reduced embedding
+# dissimilarity: 'euclidean' (default) or 'precomputed'
+#   this is a very important argument
+#   if 'euclidean' (default), we pass a dataset of points
+#   and pairwise Euclidean distances between them are computed
+#   if 'precomputed', MSD expects a matrix of precomputed distances
+#   not data points; we can use any metric to compute those distances!
+embedding=MDS(n_components=2, n_init=1, max_iter=120, n_jobs=2)
+
+# Transform the digits to the embedding
+X_transformed=embedding.fit_transform(X)
+# Now, plot the embedding: scatter and color according to group
+# See K-means examples
+
+# Now we pass the dissimilarity matrix instead of the initial dataset
+# and we use our distance metric of choice
+# Different embeddings are created.
+# As in the case of the cities, it is remarkable that we don't pass the initial dataset, but the matrix of distances,
+# and it works!
+from scipy.spatial.distance import squareform, pdist
+
+dist=['cosine','cityblock','hamming','jaccard','chebyshev','canberra','braycurtis']
+scaler = MinMaxScaler()
+X_norm=scaler.fit_transform(X)
+
+for d in dist:
+    # distance is a n_sample x n_sample matrix with distances between samples
+    distance=squareform(pdist(X_norm,metric=d))
+    print( d)
+
+    embedding =  MDS(dissimilarity='precomputed', random_state=0,n_components=2)
+    X_transformed = embedding.fit_transform(distance)
+    # Now, we could plot the embedding
+
+# TSNE
+from sklearn.manifold import TSNE
+X_embedded = TSNE(n_components=2, init='random').fit_transform(X)
+fig, ax = plt.subplots()
+# Now, we could plot the embedding
+
+### --- Dimensionality Reduction: NMF
+
+# This is usually used with
+# - reductions that need a higher interpretablity
+# - topic discovery --> this is shown here
+
+from sklearn.decomposition import NMF
+
+# n_components: latent components to be identified, e.g., topics
+# X: documents x words
+nmf = NMF(n_components=5, init='random', random_state=818)
+# The transformed data points: they are represented in the new basis,
+# for each data point, we get the positive weight of each basis component
+W = nmf.fit_transform(X) # (X.shape[0]=n_samples, n_components)
+# The new basis with n_components intepretable vectors
+# For each topic, the importance of each word
+# or vice versa: for each word, their important in each topic
+H = nmf.components_ # (n_components, X.shape[1]=n_features)
+# X_hat = V = W@H
+
+# Find feature with highest topic-value per doc
+np.argmax(W, axis=1)
+
+# Analysis
+# The real words should be extractable from X,
+# if it has been created with CountVectorizer or TfidfVectorizer
+# words <- countvectorizer.vocabulary_
+words = list(range(1,X.shape[0]+1))
+documents = list(range(1,X.shape[1]+1))
+
+topic_word = pd.DataFrame(data=H.round(3),
+                         columns=words,
+                         index=['topic_1','topic_2','topic_3','topic_4','topic_5'])
+topic_doc = pd.DataFrame(data=W.round(3),
+                         index=documents,
+                         columns=['topic_1','topic_2','topic_3','topic_4','topic_5'])
+# The mapping from topic_x to the topic label
+topic_doc.reset_index().groupby('index').mean().idxmax()
+# topic_1    3
+# topic_2    4
+# topic_3    1
+# topic_4    5
+# topic_5    2
+
+# The most important 20 words for topic x
+topic_word.T.sort_values(by='topic_5', ascending=False).head(20)

@@ -11,7 +11,11 @@ The steps in the data science pipeline that need to be carried out to answer bus
 
 The file [data_processing.py](data_processing.py) compiles the most important tools I use for the steps 2-5, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle). Additionally, in the following, some practical guidelines are summarized very schematically.
 
-Note that this guide assumes familiarity with `python`, `numpy`, `pandas`, `matplotlib`, `seaborn`, `sklearn` and `scipy`, among others. Additionally, I presume you are acquainted with machine learning and data science concepts.
+Notes:
+
+- This guide assumes familiarity with `python`, `numpy`, `pandas`, `matplotlib`, `seaborn`, `sklearn` and `scipy`, among others.
+- Additionally, I presume you are acquainted with machine learning and data science concepts.
+- Finally, mainly **tabular data** is considered; however, very basic natural text processing (MLP) approaches are introduced in the feature engineering section.
 
 For more information on the motivation of the guide, see my [blog post](https://mikelsagardia.io/blog/data-processing-guide.html).
 
@@ -312,9 +316,62 @@ class MeanImputer(BaseEstimator, TransformerMixin):
         return X
 ```
 
-### Natural Languange Processing (NLP): Extracting Text Features
+### Natural Languange Processing (NLP): Extracting Text Features with Bags of Words
 
+Natural Language Processing is a completely separate topic, as are Image Processing or Computer Vision. If we'd like to model natural language texts as sequences of words, the most effective approaches are (1) [Recurrent Neural Networks](https://en.wikipedia.org/wiki/Recurrent_neural_network) (RNN) or (2) [Transformers](https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)). My following repositories show examples about how we can use Recurrent Neural Networks with text:
 
+- [text_sentiment](https://github.com/mxagar/text_sentiment)
+- [text_generator](https://github.com/mxagar/text_generator)
+
+However, in simple cases in which we'd like to vectorize short texts that are embedded in larger tabular datasets, we can use **bags of words**. Let's say we have a corpus of many documents of a similar type (e.g., articles, reviews, etc.); each document is a text. Then, we do the following:
+
+- We tokenize (and maybe stem/lemmatize) all the words in the corpus. A more detailed description of these steps is given [here](https://github.com/mxagar/text_sentiment).
+- We create a vocabulary with all the unique words.
+- We create a **document-term matrix (DTM)**, with
+    - rows: documents
+    - columns: tokens from vocabulary
+    - cell content: presence/count/frequency of word in document
+
+That DTM is our `X` and it can be used to perform supervised (e.g., classification, if we have document labels) or unsupervised learning (e.g., topic discovery).
+
+The cell contents can be 
+    
+1. word presence: whether a word appears (1) or not (0) in the document: `CountVectorizer`.
+2. word count: how many times a word appears in the document: `CountVectorizer`.
+3. word frequency: **term frequency inverse document frequency (TF-IDF)** values: `TfidfVectorizer`.
+
+The **term frequency inverse document frequency (TF-IDF)** consists in multiplying the count of that term in the document by the how rare that term is throughout all the documents we are looking at. That way, common but meaningless words (e.g., 'the', 'of', etc.) have a lower value.
+
+#### Example
+
+Two documents: *"We like dogs and cats"*; *"We like cars and planes"*
+
+`CountVectorizer()` yields:
+
+| doc | We | like | and | dogs | cats | cars | planes |
+| --- | -- | ---- | --- | ---- | ---- | ---- | ------ |
+| 0   | 1  | 1    | 1   | 1    | 1    | 0    | 0      |
+| 1   | 1  | 1    | 1   | 0    | 0    | 1    | 1      |
+
+`TfidfVectorizer()` would yield:
+
+| doc | We | like | and | dogs   | cats   | cars   | planes |
+| --- | -- | ---- | --- | ------ | ------ | ------ | ------ |
+| 0   | 1  | 1    | 1   | 1.6931 | 1.6931 | 0      | 0      |
+| 1   | 1  | 1    | 1   | 0      | 0      | 1.6931 | 1.6931 |
+
+The TF-IDF matrix would contain the following values for each document `d` and term `t` cell:
+
+`idf(d,t) = ln((N/|d in D in which t in d|) + 1)`
+`tfidf(d,t) = C(d,t) * idf(d,t)`
+
+With:
+
+- `N`: total number of documents in the corpus, `|D|`
+- `|d in D in which t in d|`: number of documents in which the term `t` appears
+- `C(d,t)`: how many times the term `t` appears in document `d`
+
+However, note that `TfidfVectorizer()` additionally normalizes each row to have length 1.
 
 ## Feature Selection
 
@@ -480,13 +537,97 @@ Data modeling is out of the scope of this guide, because the goal is to focus on
 Unsupervised learning is out of the scope of this guide, because the goal is to focus on the data processing and analysis part. However, some basic techniques related to dataset structure identification are compiled, since they can be very helpful while performing EDA or feature engineering. All in all, unsupervised learning techniques for tabular data can be classified as (1) **clustering** techniques and (2) **dimensionality reduction** techniques for either improving modeling or visualizing the dataset. In both cases, **distance metrics** are fundamental.
 
 - Distance metrics
-- Clustering
-    - `KMeans`
+		- Euclidean distance, L2: `d(x,y) = srqt(sum((x-y)^2))`
+		- Mahattan distance, L1: `d(x,y) = sum(abs(x-y))`; often used in cases with very high dimensionality, because distance values between point pairs become more unique than L2.
+		- Cosine: `d = 1 - cos(x,y)`
+				- It measures the angle between vectors.
+				- Always check formula in documentation, because it is distinguished between *cosine similarity* and *cosine distance*.
+				- Better for data that can contain many similar vectors, e.g., text: one text can be the summary of another so the vector end-points are relatively far from each other, but they are aligned! In other words, the location/occurrence/coordinate of the end-point is not important.
+		- Jaccard: another distance measure used also with text or, in general, with sets of sequences: it measures the intersection over union of unique words/items (i.e., sets) that appear in two texts/sequences.
+				- Ideal for **categorical features**!
+				- Check formula, since there are differences between *Jaccard similarity* and *Jaccard distance*.
+		- Average vs. pairwise distances:
+				- Average distance: given 2 X & Y datasets with rows of feature vectors, the distances between each x in X to each y in Y are computed, and then, the average.
+				- Pairwise distance: given 2 X & Y datasets with rows of feature vectors, the distance between paired rows is computed, and then, the average. 
+- Clustering: find `k` centroids `C_k` and assign each `x_i` to one `C_k`
+    - Evaluation Metrics
+    		- `inertia_k = sum(i = 1:n; (x_i - C_k)^2)`
+    		- `distortion_k = (1/n) * inertia_k = (1/n) sum(i = 1:n; (x_i - C_k)^2)`
+    		- If we want clusters with similar numbers of points, use distortion.
+    - `KMeans`: 
+    		- Main parameter: number of clusters, `k`
+    		- Use `kmeans++` for better initialization: initial centroids are chosen far from each other.
+    		- Elbow method: fit clusterings with different `k` and take the one from which metric (e.g., inertia) doesn't improve significantly
+    - Gaussian Mixtures Model, `GaussianMixture`: Gaussian blobs are placed on detected clusters
+    		- K-means is a *hard* clustering algorithm: it says whether a point belongs to a cluster or not.
+				- GMM is a *soft* clustering algorithm: it tells the probability of a point of belonging to different clusters.
+				- It is more informative to have a probability, since we can decide to take different clusters for a point depending on the business case.
+				- Another application: **Anomaly Detection**; since we get probabilities of cluster belonging, a data point can be classified as outlier if all its probabilities are below a threshold!
+		- Hierarchical Agglomerative Clustering, `AgglomerativeClustering`: iteratively find the two closest items in our dataset and cluster them together; an item can be (i) a data point (ii) or a cluster.
+				- We need to define:
+						1. A good distance metric.
+						2. A type of linkage for computing distances between point-cluster or cluster-cluster.
+				- A stop criterium is required, else all ends up being one big cluster.
+		- `DBSCAN`: Density-Based Spatial Clustering of Applications with Noise
+				- It truly finds clusters of data, i.e., we do not partition the data; points can be left without cluster or in cluster *noise*: **outliers**! It can be used for **anomaly / outlier detection**.
+				- It finds *core points* in high density regions and expands clusters from them, adding points that are at least at a given distance.
+				- Points end up being *core*, *density-reachable* or *noise*, depending on their local density / connectivity to neighbors.
+				- It works with namy dataset shapes, but it doesn't do well with clusters of different densities.
+		- `MeanShift`
+				- Similar to k-means: cluster centroid is shifted to the point with highest local density iteratively.
+				- No assumption on number of clusters.
+				- A window/bandwidth is defined centered in each point (standard deviation); then, the weighted mean (e.g., with kernel RBF) of the points within that window is measured to compute the new window center. The window wanders until a convergence point, called the mode = centroid. The process is repeated for every point in the dataset.
+				- Robust to outliers: outliers have their own clusters.
+				- Slow: complexity is `m*n^2`, with `m` iterations and `n` points.
+		- **Which clustering algorithm should we use?**
+				- Often, it depends on the shape of the dataset, the homogeneity of the density and the number of points.
+				- DBSCAN seems to work well in many toy datasets, but density needs to be homogeneous.
+				- Check: [Comparing different clustering algorithms on toy datasets](https://scikit-learn.org/stable/auto_examples/cluster/plot_cluster_comparison.html#sphx-glr-auto-examples-cluster-plot-cluster-comparison-py).
 - Dimensionality Reduction
-    - Curse of dimensionality
-    - `PCA`
-    - `NMF`
-    - Manifold learning
+    - Curse of dimensionality: having more features is often counter-productive:
+    		- With more dimensions, the number of data-points we need to cover the complete feature space increases exponentially.
+    		- The probability of having correlations between features increases.
+    		- The risk of having outliers increases.
+    		- Solution:
+    				- Feature selection
+    				- Dimensionality reduction
+    - Principal Component Analysis: `PCA`, `KernelPCA`
+    		- The axes/directions (= components) which account to the maximum variance in the feature space are discovered using the **Singular Value Decomposition (SVD)**. Those axes form a new base: all directions are perpendicular to each other and they have the least correlation with each other.
+    		- The number of default components, `n_components`, is the number of features `n` if we have more samples `m` than features, and these components are ordered according to their explained variance (singular value); however, the set is often truncated to reach a cumulative explained variance. Thus, if we take `n_components = k < n` components:
+    				- `X_(mxn) = U_(mxm) * S_(mxn) * V^T_(nxn)`
+    				- `X_hat(mxn) = U_(mxk) * S_(kxk) * V^T_(kxn)`
+    		- Note that not always `n < m`, i.e., there are sometimes more features than samples (e.g., with images). In the general case, the maximum value of `n_components` is `min(n_features=n, n_samples=m)`.
+    		- **Scaling is fundamental** for PCA.
+    		- **The accuracy of a model can increase if a truncated PCA-ed dataset is used!** That's because of the curse of dimensionality.
+    		- If we think the dataset has non-linearities, we can apply `KernelPCA`, which is equivalent to `KernelSVM`.
+    		- `GridSearchCV` can be applied with a custom `score()` function to find the best parameters of `PCA` / `KernelPCA`: `score = -mse(X_hat, X)`
+    - Manifold learning: we reduce the dimensionality of the dataset, but maintaining the distances between the datapoint pairs in the lower dimensional space.
+    		- Multidimensional Scaling, `MDS`:
+    				- A mapping `x -> z` is achieved so that we minimize the *stress* function, which is the sum of all squared differences in distance values in each space: `min sum((d(x_i,x_j) - d(z_i,z_j))^2)`.
+    				- We can pass to `MDS` either
+    						- the dataset of points and the pairwise Euclidean distances are computed
+    						- or the matrix of distances between points (`dissimilarity='precomputed'`); we can use our choice of distance metric.
+    		- T-SNE: similar to PCA/MDS, often used to visualize datasets
+    - Non-negative Matrix Factorization: `NMF`
+    		- We decompose our original dataset matrix as a multiplication of other two lower rank matrices. Important characteristic: all matrices need to have only positive values.
+    		- Examples:
+    				- Recommender System:
+				        - `V (m x u)`: movies x users, estimated rating of movie by user
+				        - `W (m x n)`: movies x detected **features**, feature weights of each movie
+				        - `H (n x u)`: detected **features** x users, weight given by each user to each feature
+    				- Document Topic Identification:
+				        - `V (m x u)`: documents x terms, frequency of term in document as TF-IDF
+				        - `W (m x n)`: documents x detected **topics**, topic weights of each document
+				        - `H (n x u)`: detected **topics** x terms, importance of each term in each topic
+				- Differences wrt. PCA/SVD
+						- PCA/SVD works very well for dimensionality reduction, i.e., for compression.
+						- PCA/SVD is suited for datasets that have negative values.
+						- NNMF works only with positive values, therefore the discovered latent features or basis components cannot be cancelled, i.e., they must be really important. In consequence, the obtained latent components represent positive and often more human interpretable elements in the dataset; e.g., if we apply NNMF to face images, each component represents the shades of eyes, nose, ears, etc.
+						- If we truncate NNMF components, we lose more information, because the components are more informative.
+						- NNMF doesn't provide with orthogonal latent vectors, as PCA/SVD does.
+
+
+In my notes on [Unsupervised Learning](https://github.com/mxagar/machine_learning_ibm/tree/main/04_Unsupervised_Learning) there are many examples and further notes.
 
 ## Tips for Production
 
