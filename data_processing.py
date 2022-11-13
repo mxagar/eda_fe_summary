@@ -113,8 +113,12 @@ df['var'] = df['var'].astype('O')
 
 # IQR = 1.5*(q75-q25) -> outlier detection
 q25, q50, q75 = np.percentile(df['price'], [25, 50, 75])
-# Skewness: an absolute value larger than 0.75 requires transformations
+# Skewness
 df['price'].skew()
+# Skewness: an absolute value larger than 0.75 requires transformations
+for col in numerical_cols:
+    if np.abs(df[col].skew()) > 0.75:
+        df[col] = np.log1p(df[col])
 
 # Get uniques and counts of the levels of a categorcial variable
 df["condition"].value_counts().sort_values(ascending=False).plot(kind='bar')
@@ -568,6 +572,13 @@ categories = ['high school', 'bachelor', 'masters', 'phd']
 oe = OrdinalEncoder(categories=categories, handle_unknown='ignore')
 df['education_level'] = oe.fit_transform(df['education_level'])
 # ['high school', 'bachelor', 'masters', 'phd'] -> [0, 1, 2, 3]
+# NOTE: single columns might yield errors,
+# in that case, we might need to reshape them:
+ordinal_encoders = dict()
+for col in categorical_features:
+    oe = OrdinalEncoder()
+    X[col] = oe.fit_transform(X[col].values.reshape(-1, 1))
+    ordinal_encoders[col] = oe
 
 # Make a feature explicitly categorical (as in R)
 # This is not necessary, but can be helpful, e.g. for ints
@@ -780,11 +791,11 @@ cv.vocabulary_ # term - index
 cv.stop_words_ # words that were ignored due to several reasons...
 
 # TF-IDF
-tfidf = TfidfTransformer()
+tfidf = TfidfVectorizer()
 tfidf_mat = tfidf.fit_transform(X)
 # Convert to a dataframe
-# TfidfTransformer normalizes each row to length 1
-tfidf_df = pd.DataFrame(tfidf_mat.toarray(), columns = cv.get_feature_names_out())
+# TfidfVectorizer normalizes each row to length 1
+tfidf_df = pd.DataFrame(tfidf_mat.toarray(), columns = tfidf.get_feature_names_out())
 # 1586 rows × 500 columns
 
 tfidf.vocabulary_ # term - index
@@ -1958,7 +1969,6 @@ pca.explained_variance_ratio_
 pca.explained_variance_ratio_.sum() # must be 1
 # Variance of each component
 pca.explained_variance_
-
 
 ### --- Dimensionality Reduction: Kernel PCA with GridSearchCV
 
