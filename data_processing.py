@@ -1704,7 +1704,7 @@ plt.xlabel('Number of Clusters, k')
 plt.ylabel('Inertia');
 
 # Plot clustered data in 2D
-def display_cluster(X,km=[],num_clusters=0):
+def plot_dataset_clusters(X,km=[],num_clusters=0):
     color = 'brgcmyk'
     alpha = 0.5
     s = 20
@@ -1733,7 +1733,7 @@ agg = AgglomerativeClustering(  n_clusters=3,
                                 affinity='euclidean', # distance metric
                                 linkage='ward')
 agg.fit(X1)
-y_pred = agg.predict(X2)
+y_pred = agg.labels_
 
 ## DBSCAN
 
@@ -2023,6 +2023,8 @@ kernelPCA = kernelPCA.fit(X)
 kernelPCA.best_estimator_
 
 ### --- Dimensionality Reduction: MDS, TSNE
+
+from sklearn.manifold import MDS
 
 # Create an MDS embedding
 # n_componenets: dimension of reduced embedding
