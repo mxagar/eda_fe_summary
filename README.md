@@ -22,22 +22,23 @@ For more information on the motivation of the guide, see my [blog post](https://
 ### Table of Contents
 
 - [Data Processing: A Practical Guide](#data-processing-a-practical-guide)
-    - [Table of Contents](#table-of-contents)
-  - [General](#general)
-  - [Data Cleaning](#data-cleaning)
-  - [Exploratory Data Analysis](#exploratory-data-analysis)
-  - [Feature Engineering](#feature-engineering)
-    - [Scikit-Learn Transformers](#scikit-learn-transformers)
-    - [Creation of Transformer Classes](#creation-of-transformer-classes)
-    - [Natural Languange Processing (NLP): Extracting Text Features](#natural-languange-processing-nlp-extracting-text-features)
-  - [Feature Selection](#feature-selection)
-  - [Hypothesis Tests](#hypothesis-tests)
-  - [Data Modeling and Evaluation (Supervised Learning)](#data-modeling-and-evaluation-supervised-learning)
-  - [Dataset Structure: Unsupervised Learning](#dataset-structure-unsupervised-learning)
-  - [Tips for Production](#tips-for-production)
-    - [Pipelines](#pipelines)
-  - [Related Links](#related-links)
-  - [Authorship](#authorship)
+		- [Table of Contents](#table-of-contents)
+	- [General](#general)
+	- [Data Cleaning](#data-cleaning)
+	- [Exploratory Data Analysis](#exploratory-data-analysis)
+	- [Feature Engineering](#feature-engineering)
+		- [Scikit-Learn Transformers](#scikit-learn-transformers)
+		- [Creation of Transformer Classes](#creation-of-transformer-classes)
+		- [Natural Languange Processing (NLP): Extracting Text Features with Bags of Words](#natural-languange-processing-nlp-extracting-text-features-with-bags-of-words)
+			- [Example](#example)
+	- [Feature Selection](#feature-selection)
+	- [Hypothesis Tests](#hypothesis-tests)
+	- [Data Modeling and Evaluation (Supervised Learning)](#data-modeling-and-evaluation-supervised-learning)
+	- [Dataset Structure: Unsupervised Learning](#dataset-structure-unsupervised-learning)
+	- [Tips for Production](#tips-for-production)
+		- [Pipelines](#pipelines)
+	- [Related Links](#related-links)
+	- [Authorship](#authorship)
 
 ## General
 
@@ -469,6 +470,7 @@ Data modeling is out of the scope of this guide, because the goal is to focus on
 			- It is the most important metric in disease or fraud detection.
 		- Specificity of each class: Precision for Negatives = `TN / (FP + TN)`
 		- F1: harmonic mean between precision and recall; it is a nice trade-off between precision and recall, thus, a metric which is recommend by default: `F1 = 2 *(Precision*Recall)/(Precision+Recall)`
+		- [Matthews Correlation Coefficient (MCC)](https://towardsdatascience.com/the-best-classification-metric-youve-never-heard-of-the-matthews-correlation-coefficient-3bf50a2f3e9a)
 		- ROC curve (binary classifications)
 			- True positive rate = Sensitivity = Recall
 			- False positive rate = 1 - Specificity
