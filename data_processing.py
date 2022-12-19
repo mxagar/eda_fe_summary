@@ -425,7 +425,7 @@ print(dx.to_string(float_format="%.3f"))
 # Bars, Horizontal bars
 plt.bar(np.arange(10), df.var.iloc[:10])
 plt.barh(np.arange(10), df.var.iloc[:10])
-sns.barplot(data=df, x='married', ='income', hue='gender')
+sns.barplot(data=df, x='married', y='income', hue='gender')
 
 # Countplots: bar plot of the selected variable
 sns.countplot(x='gender', data=df)
