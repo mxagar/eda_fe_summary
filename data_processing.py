@@ -54,7 +54,7 @@ from sklearn.linear_model import LinearRegression, Lasso, Ridge
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 
-from sklearn.metrics import classification_report, confusion_matrix, roc_curve, plot_roc_curve
+from sklearn.metrics import classification_report, confusion_matrix, roc_curve #, plot_roc_curve
 from sklearn.metrics import precision_recall_fscore_support as classification_score
 from sklearn.metrics import confusion_matrix, accuracy_score, roc_auc_score, plot_confusion_matrix
 
@@ -142,7 +142,8 @@ df.groupby(['year', 'city'])['var'].median()
 df.groupby('CompanySize')['JobSatisfaction'].mean().dropna().sort_values()
 
 # Dates: are usually 'object' type, they need to be converted & processed
-df['date'] = pd.to_datetime(df['date'], format='%b-%y')
+# Format: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
+df['date'] = pd.to_datetime(df['date'], format='%b-%y') # format='%Y-%m-%d'
 df['month'] = df['date'].dt.month_name().str.slice(stop=3)
 df['year'] = df['date'].dt.year
 
@@ -1288,17 +1289,29 @@ fig_cm.tight_layout()
 auc = roc_auc_score(label_binarize(y_test, classes=[0,1,2,3,4,5]),
           label_binarize(y_pred[lab], classes=[0,1,2,3,4,5]), 
           average='weighted')
-model_roc_plot = plot_roc_curve(model, X_test, y_test, name="Logistic Regression") # ROC curve plotted and AUC computed
-# An alternative is the following, but we need to pass y_prob = model.predict_proba(X_test)
-# But we need to plot manually
-fpr, tpr, thresholds = roc_curve(y_test, y_prob[:,1]) # select the class from which we need the probabilities
-plt.plot(fpr, tpr, linewidth=5)
-plt.plot([0, 1], [0, 1], ls='--', color='black', lw=.3)
-plt.set(xlabel='False Positive Rate',
-        ylabel='True Positive Rate',
-        xlim=[-.01, 1.01], ylim=[-.01, 1.01],
-        title='ROC curve')
-plt.grid(True)
+# Old interface, not available anymore:
+# model_roc_plot = plot_roc_curve(model, X_test, y_test, name="Logistic Regression") # ROC curve plotted and AUC computed
+# An alternative is the following;
+# note that
+# - we need to use y_prob = model.predict_proba(X_test)
+# - we need to plot manually
+def plot_roc_curve(model, X_test, y_test, title, filename):
+    """Plot ROC curve."""
+    y_pred = model.predict_proba(X_test)[:, 1]
+    auc = roc_auc_score(y_test, y_pred)
+    fpr, tpr, thresholds = roc_curve(y_test, y_pred, pos_label=None)
+    plt.figure(figsize=(5,5))
+    plt.title(f'Receiver Operating Characteristic - ROC\n({title})')
+    plt.plot(fpr, tpr, label=f"Model predictions, AUC (test) = {round(auc,2)}")
+    plt.plot([0, 1], ls="--", label="Random guess, AUC = 0.5")
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.legend()
+    plt.savefig(f'./assets/{filename}', dpi=200, transparent=False, bbox_inches='tight')
+
+title = "subtitle"
+filename = "model_roc_curve_test.png"
+plot_roc_curve(model, X_test, y_test, title, filename)
 
 # Precision-Recall Curve: Similar to ROC, but better suited for unbalanced datasets
 # We need to plot manually
@@ -1352,15 +1365,26 @@ print('RMSE: ', mean_squared_error(np.exp(y_test), np.exp(pred_test), squared=Fa
 print('R2', r2_score(np.exp(y_test), np.exp(pred_test)))
 
 # If Regression: Plot True y vs. Predicted y
-plt.figure(figsize=(8,8))
-y_true = np.exp(y_test)
-y_pred = np.exp(model.predict(X_test))
-plt.scatter(y_true, y_pred,color='b',alpha=0.5)
-plt.plot(np.array([0,np.max(y_true)],dtype='object'),np.array([0,np.max(y_true)],dtype='object'),'r-')
-plt.xlabel('True Target')
-plt.ylabel('Predicted Target')
-plt.axis('equal')
+def plot_real_vs_predicted(model, X_test, y_test, variable_name, title, filename):
+    """Plot real y vs. predicted."""
+    plt.figure(figsize=(6,6))
+    x = y_test
+    y = model.predict(X_test)
+    r2_test = r2_score(x,y)
+    plt.scatter(x, y, color='b', alpha=1.0)
+    plt.plot(np.array([0,np.max(x)],dtype='object'),np.array([0,np.max(x)],dtype='object'),'r-')
+    plt.legend([f'{title}, R2 = {r2_test}','Ideal: Predicton = True'])
+    plt.xlabel(f'True {variable_name}')
+    plt.ylabel(f'Predicted {variable_name}')
+    plt.title(f'Evaluation of Model Predictions\n({title})')
+    plt.axis('equal')
+    plt.savefig(f'./assets/{filename}',dpi=600,transparent=True,bbox_inches='tight')
 
+variable_name = "variable"
+title = "subtitle"
+filename = "model_prediction_performance.png"
+plot_real_vs_predicted(model, X_test, y_test, variable_name, title, filename)    
+    
 # If Regression: check residuals are normally distributed (QQ plot)
 y_true = np.exp(y_test)
 y_pred = np.exp(model.predict(X_test))

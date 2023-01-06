@@ -1,0 +1,103 @@
+# Title
+
+Intro.
+
+Questions:
+
+1. A
+2. B
+3. C
+
+## Table of Contents
+
+- [Title](#title)
+  - [Table of Contents](#table-of-contents)
+  - [Dataset](#dataset)
+  - [How to Use This Project](#how-to-use-this-project)
+    - [Installing Dependencies for Custom Environments](#installing-dependencies-for-custom-environments)
+  - [Notes on Theory](#notes-on-theory)
+  - [Notes on the Implemented Analysis and Modeling](#notes-on-the-implemented-analysis-and-modeling)
+  - [Results](#results)
+  - [Summary of Contents](#summary-of-contents)
+  - [Next Steps, Improvements](#next-steps-improvements)
+  - [Conclusions](#conclusions)
+  - [References](#references)
+  - [Interesting Links](#interesting-links)
+  - [Authorship](#authorship)
+
+## Dataset
+
+## How to Use This Project
+
+The directory of the project consists of the following files:
+
+```
+.
+├── Instructions.md           # Original challenge instructions
+...
+```
+
+You can run the notebook at leas in two ways:
+
+1. In a custom environment, e.g., locally or on a container. To that end, you can create a [conda](https://docs.conda.io/en/latest/) environment and install the [dependencies](#installing-dependencies-for-custom-environments) as explained below.
+2. In Google Colab. For that, simply click on the following link:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/mxagar/Idoven-Data-Scientist/blob/develop/ecg_analysis.ipynb)
+
+### Installing Dependencies for Custom Environments
+
+If you'd like to control where the notebook runs, you need to create a custom environment and install the required dependencies. A quick recipe which sets everything up with [conda](https://docs.conda.io/en/latest/) is the following:
+
+```bash
+# Create environment with YAML, incl. packages
+conda env create -f conda.yaml
+conda activate ecg
+# Install pip dependencies
+pip install requirements.txt
+# Track any changes and versions you have
+conda env export > conda_.yaml
+pip freeze > requirements_.txt
+```
+
+List of dependencies:
+
+- A
+- B
+
+## Notes on Theory
+
+## Notes on the Implemented Analysis and Modeling
+
+## Results
+
+## Summary of Contents
+
+- [ ] A
+- [ ] B
+
+## Next Steps, Improvements
+
+## Conclusions
+
+## References
+
+Publications related to the dataset:
+
+- A
+- B
+- C
+
+
+## Interesting Links
+
+Topic A:
+
+- Link
+- Link
+
+## Authorship
+
+Mikel Sagardia, 2022.  
+No guarantees.
+
+If you find this repository useful, you're free to use it, but please link back to the original source.
