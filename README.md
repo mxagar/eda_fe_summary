@@ -9,9 +9,13 @@ The steps in the data science pipeline that need to be carried out to answer bus
 5. Feature Selection
 6. Data Modelling
 
-The file [data_processing.py](data_processing.py) compiles the most important tools I use for the steps 2-5, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle). Additionally, in the following, some practical guidelines are summarized very schematically.
+The file [data_processing.py](data_processing.py) compiles the most important tools I use for the steps 2-5, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle). Additionally, the folder [`utils/`](utils) contains very basic template files for a data science project setup:
 
-Notes:
+- `README.md`
+- `conda.yaml`
+- `requirements.txt`
+
+In the following, some practical guidelines are summarized very schematically. Notes:
 
 - This guide assumes familiarity with `python`, `numpy`, `pandas`, `matplotlib`, `seaborn`, `sklearn` and `scipy`, among others.
 - Additionally, I presume you are acquainted with machine learning and data science concepts.
