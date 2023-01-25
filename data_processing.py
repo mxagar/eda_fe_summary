@@ -91,6 +91,26 @@ import pickle
 pickle.dump(model, open('model.pickle','wb')) # wb: write bytes
 model = pickle.load(open('model.pickle','rb')) # rb: read bytes
 
+# Save ASCII files, e.g. TXT
+lines = ['Readme', 'How to write text files in Python']
+with open('readme.txt', 'w') as f:
+    f.writelines(lines) # lines separated by \n
+
+with open('readme.txt', 'w') as f:
+    f.write('\n'.join(lines)) # equivalent to previous
+    
+more_lines = ['', 'Append text files', 'The End']
+with open('readme.txt', 'a') as f:
+    f.write('\n'.join(more_lines)) # append to an existing file
+
+# Get current date & time
+from datetime import date, datetime
+print(date.today()) # 2023-01-17
+now = datetime.now()
+print(now) # 2023-01-17 09:12:57.731891
+print(now.strftime("%d/%m/%Y %H:%M:%S")) # 17/01/2023 09:12:57
+
+# General info on dataframe structure and columns
 df.head(3)
 df.info()
 df["price"].describe() # use .T if many columns
@@ -191,6 +211,22 @@ sns.set_style('white')
 ##### -- 
 ##### -- Data Cleaning
 ##### -- 
+
+# Rename column names
+# - remove preceding blank space: ' education' -> 'education', etc.
+# - replace - with _: 'education-num' -> 'education_num', etc.
+df = df.rename(
+    columns={col_name: col_name.replace(' ', '') for col_name in df.columns})
+df = df.rename(
+    columns={col_name: col_name.replace('-', '_') for col_name in df.columns})
+
+# Remove or strip blank spaces from categorical column fields
+categorical_cols = list(df.select_dtypes(include = ['object']))
+for col in categorical_cols:
+    df[col] = df[col].str.replace(' ', '')
+# Alternatives:
+# df[col] = df[col].str.strip()
+# df = pd.read_csv('dataset.csv', skipinitialspace = True)   
 
 # Get duplicated rows
 # df.duplicated(['id']) -> False, False, ...
@@ -443,6 +479,38 @@ plot = sns.FacetGrid(df, col='species', margin_titles=True)
 # 2: which variable to plot in cols, and which plot type (hist)
 plot.map(plt.hist, 'height', color='green')
 
+### Word Cloud
+
+# A word cloud can be a nice thing if we have a text field. Install:
+# !pip install seaborn==0.11.1
+# !pip install wordcloud==1.8.1
+
+from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
+
+# Join all texts
+texts = " ".join(title for title in df['text'].astype(str))
+
+# English Stopwords: Defined in wordlcloud
+stopwords = set(STOPWORDS)
+# Custom stop words: common but uninteresting words from titles
+stopwords.update(["getting started", "using", "enabling", "template", "university", "end", "introduction", "basic"])
+
+# Configure
+wordcloud = WordCloud(stopwords=stopwords, background_color="white", width=800, height=400)
+
+# Generate the wordcloud
+wordcloud.generate(texts)
+
+# Plot and save image
+plt.axis("off")
+plt.figure(figsize=(20,10))
+plt.tight_layout(pad=0)
+plt.imshow(wordcloud, interpolation='bilinear')
+fig = plt.gca()
+fig.get_xaxis().set_visible(False)
+fig.get_yaxis().set_visible(False)
+plt.savefig("./word_cloud.png", bbox_inches='tight')
+plt.show()
 
 ##### -- 
 ##### -- Feature Engineering
@@ -1396,7 +1464,7 @@ stats.probplot(error, dist="norm", plot=plt);
 # we should check their p-value; statsmodels can do that
 importance = pd.DataFrame(model.coef_.ravel()) # LinearRegression, Lasso, Ridge
 importance = pd.DataFrame(model.feature_importances_.ravel()) # RandomForestRegressor
-importance.index = df.columns
+importance.index = df.columns # Or, better: model.feature_names_in_
 importance.columns = ['coef']
 importance['plus'] = importance['coef'].apply(lambda col: 1 if col > 0 else 0)
 importance['coef'] = np.abs(importance['coef'])
@@ -1422,6 +1490,7 @@ plt.xlabel('Coefficient Value of Features')
 # - n_repeats: how many times each feature is permuted
 # - sample_weight: weight assigned to each sample/data-point
 # The output is of the size: n_features x n_repeats
+from sklearn.inspection import permutation_importance
 feature_importances = permutation_importance(estimator=black_box_model,
                                              X = X_train,
                                              y = y_train,
@@ -1612,8 +1681,15 @@ nlp_features = ['review']
 # Define processing for categorical columns
 # handle_unknown: label encoders need to be able to deal with unknown labesl!
 categorical_transformer = make_pipeline(
-    SimpleImputer(strategy="constant", fill_value=0), OrdinalEncoder(handle_unknown='ignore')
+    SimpleImputer(strategy="constant", fill_value=0),
+    OrdinalEncoder(handle_unknown='ignore')
 )
+# We can use make_pipeline if we don't care about accessing steps later on
+# but if we want to access steps, better to use Pipeline!
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy="constant", fill_value=0)),
+    ('onehot', OneHotEncoder(sparse_output=False, handle_unknown="ignore"))])
+
 # Define processing for numerical columns
 numerical_transformer = make_pipeline(
     SimpleImputer(strategy="median"), StandardScaler()
@@ -1644,6 +1720,16 @@ processor = ColumnTransformer(
 
 # Get a list of the columns we used
 used_columns = list(itertools.chain.from_iterable([x[2] for x in processor.transformers]))
+# BUT: This is not the final set of feature names!
+# If we use OneHotEncoder or similar transformers, 
+# https://stackoverflow.com/questions/54646709/sklearn-pipeline-get-feature-names-after-onehotencode-in-columntransformer
+# https://stackoverflow.com/questions/54570947/feature-names-from-onehotencoder
+# AFTER WE HAVE FIT processor, we can get the dummy column names.
+# For instance, the dummy categorical names:
+cat_names = list(processor.transformers_[1][1]\
+    .named_steps['onehot'].get_feature_names_out(categorical_features))
+# Remove blank spaces
+cat_names = [col.replace(' ', '') for col in cat_names]
 
 # In production, avoid leaving default parameters to models,
 # because defaults can change.

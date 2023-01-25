@@ -163,7 +163,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 - Larger group plots:
     - `sns.pairplot()`: scatterplots/histograms of quantitative variables in a matrix; select variables if many.
     - `sns.FacetGrid()`: create a grid according to classes and map plot types and variables.
-
+- A word cloud can be a nice thing if we have a text field. Use `wordcloud` for that; see example.
 
 ## Feature Engineering
 

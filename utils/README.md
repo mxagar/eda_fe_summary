@@ -2,8 +2,8 @@
 
 Intro.
 
-<p align="center">
-  <img src="./images/dog_sample.png" alt="A dog." width=300px>
+<p style="text-align:center">
+  <img src="./assets/word_cloud.png" alt="A wordcloud." width=1000px>
 </p>
 
 Questions:
@@ -44,7 +44,8 @@ You can run the notebook at leas in two ways:
 1. In a custom environment, e.g., locally or on a container. To that end, you can create a [conda](https://docs.conda.io/en/latest/) environment and install the [dependencies](#installing-dependencies-for-custom-environments) as explained below.
 2. In Google Colab. For that, simply click on the following link:
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/mxagar/airbnb_data_analysis/blob/main/00_AirBnB_DataAnalysis_Initial_Tests.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mxagar/airbnb_data_analysis/blob/master/00_AirBnB_DataAnalysis_Initial_Tests.ipynb)
+
 
 ### Installing Dependencies for Custom Environments
 
