@@ -66,6 +66,8 @@ For more information on the motivation of the guide, see my [blog post](https://
     - `df.loc[]` can access only to row & column labels/names + booleans: `df.loc['a','col_name']`, `df.loc[:,'col_name']`.
     - `df[]` can be used for changing entire column values, but `df.loc[]` or `df.iloc[]` should be used for changing sliced row values.
 - We can always save any python object as a serialized file using `pickle`; for instance: models or pipelines. But: python versions must be consistent when saving and loading.
+- We can perform SQL-style joins with `pd.merge()`.
+- Use `pivot` to re-arrange the shape of a matrix/data frame.
 
 ## Data Cleaning
 
@@ -149,6 +151,7 @@ For more information on the motivation of the guide, see my [blog post](https://
     - Heatmap for all numerical variables: `sns.heatmap(df.corr())`.
         - `cmap`: [Matplotlib colormaps](https://matplotlib.org/stable/gallery/color/colormap_reference.html).
         - [Seaborn color palettes](https://seaborn.pydata.org/tutorial/color_palettes.html).
+        - Use `np.triu()` if the matrix is very large to plot only one half.
     - Bar chart for correlations wrt. target: `df.corr()['target'].sort_values(ascending=True).plot(kind='bar')`.
     - Pair correlations: `stats.pearsonr(df['x'],df['y'])`.
     - Check if there is multicolinearity (see section on Feature Selection): it's not good.
@@ -625,6 +628,11 @@ Unsupervised learning is out of the scope of this guide, because the goal is to 
           - `V (m x u)`: documents x terms, frequency of term in document as TF-IDF
           - `W (m x n)`: documents x detected **topics**, topic weights of each document
           - `H (n x u)`: detected **topics** x terms, importance of each term in each topic
+      - Important notes:
+        - We can fit the `NMF` model with a train split and then use a test split.
+        - Once the model is fit, the `H` components are constant, but `W` is different for every `X` we use.
+        - In Scikit-Learn, `X` should be sparse; to convert a dense dataframe into a sparse version, use `pivot()`. See examples.
+        - In the case of recommender systems, try the powerful library [Surprise](https://surprise.readthedocs.io/en/stable/index.html). See examples.
       - Differences wrt. PCA/SVD
         - PCA/SVD works very well for dimensionality reduction, i.e., for compression.
         - PCA/SVD is suited for datasets that have negative values.

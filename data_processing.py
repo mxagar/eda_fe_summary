@@ -1,6 +1,6 @@
 '''This python script summarizes many code snippets for data processing.
 The file won't run! It is a compilation of important code pieces ready
-for copy & paste.
+for copy & pasting (& adapting).
 
 See the companion README.md with schematic explanations.
 
@@ -75,6 +75,9 @@ from sklearn.feature_selection import SelectFromModel
 # Display all the columns of the dataframe in the notebook
 pd.pandas.set_option('display.max_columns', None)
 
+# Plotting styles can be modified!
+sns.set_context('talk')
+sns.set_style('white')
 
 ##### -- 
 ##### -- General, Useful & Important Functions
@@ -193,6 +196,9 @@ df_BMX = df.iloc[:,index_bool]
 idx = df['price'].between(min_price, max_price)
 df = df[idx].copy()
 
+# Filter and convert to list
+var2_large_list = df[df.var1 > 1.0]['var2'].to_list()
+
 # Multiple filtering: Several conditions
 waist_median = df_BMX['BMXWAIST'].median()
 condition1 = df_BMX['BMXWAIST'] > waist_median
@@ -204,9 +210,90 @@ df_filtered = df[(df['location'] == "Munich, Germany") | (df['location'] == "Lon
 cities = ['Munich', 'London', 'Madrid']
 df_filtered = df[df.location.isin(cities)]
 
-# Plotting styles can be modified!
-sns.set_context('talk')
-sns.set_style('white')
+# Joins/Merges
+#
+# Example:
+# popular_courses_df: pd.DataFrame
+#       course	enrollments
+#   0   CS01    1200
+#   1   MA03    1000
+#   2   CS02    850
+# ...
+# courses_df: pd.DataFrame
+#       course_id   title                           classroom
+#   0   PH01        Physics I                       B01R01
+#   1   MA01        Algebra                         B01R01
+#   2   CS01        Introduction to Programming     B02R05
+# ...
+#
+# We want to have the title/name of the course in the
+# dataframe popular_courses.
+# We need to do an inner join!
+popular_courses_ = pd.merge(left=popular_courses_df,
+         right=courses_df,
+         how='inner',
+         left_on='course',
+         right_on='course_id')[['course', 'enrollments', 'title']]
+# popular_courses_
+#       course	enrollments title
+#   0   CS01    1200        Introduction to Programming
+#   1   MA03    1000        Calculus II
+#   2   CS02    850         Data Structures and Algorithms
+
+# Flattening of arrays/lists
+# to create dataframes
+import itertools
+id_num = [['doc1','doc1','doc1'], ['doc2','doc2','doc2']]
+token = [['hello','my','name'], ['hello','your','bye']]
+count = [[2,3,1], [1,1,2]]
+id_num_ = list(itertools.chain(*id_num)) # ['doc1','doc1','doc1','doc2','doc2','doc2']
+token_ = list(itertools.chain(*token)) # ['hello','my','name','hello','your','bye']
+count_ = list(itertools.chain(*count)) # [2,3,1,1,1,2]
+data_dict = {"id": id_num_,
+             "token": token_,
+             "count": count_}
+df = pd.DataFrame(data_dict)
+#
+# 	    id	    token	count
+# 0	    doc1	hello   2
+# 1 	doc1	my	    3
+# 2	    doc1	name	1
+# 3	    doc2	hello	1
+# 4	    doc2	your	1
+# 5 	doc2	bye	    2
+
+# Pivoting (see also the next example)
+# Re-arrange previous dataframe df
+df_slice = df[df['id'] == 'doc1']
+df_slice_T = df_slice.pivot(index=['id'], columns='token').reset_index(level=[0])
+#
+#
+#	    id	                    count
+# token		    hello	my	    name
+# 0	    doc1	2	    3	    1
+df_slice_T.iloc[0,1:].values # [2, 3, 1]
+
+# Pivoting: Another example
+# In this example a dense rating matrix is
+# converted to a sparse user-item matrix
+# Origin: 
+# https://github.com/mxagar/machine_learning_ibm/blob/main/06_Capstone_Project/lab/lab_jupyter_cf_knn.ipynb
+#
+# rating_dense_df:
+# 	user	item	    rating
+# 0	1889878	CC0101EN	3.0
+# 1	1342067	CL0101EN	3.0
+# 2	1990814	ML0120ENv3	3.0
+# 3	380098	BD0211EN	3.0
+# 4	779563	DS0101EN	3.0
+rating_sparse_df = ratingrating_dense_df.pivot(index='user', columns='item', values='rating').fillna(0).reset_index().rename_axis(index=None, columns=None)
+rating_sparse_df.head()
+# 	user	AI0111EN	BC0101EN	BC0201EN ...
+# 0	2	    0.0	        3.0	        0.0	     ...
+# 1	4	    0.0	        0.0	        0.0	     ...
+# 2	5	    2.0	        2.0	        2.0	     ...
+# 3	7   	0.0	        0.0	        0.0	     ...
+# 4	8	    0.0	        0.0	        0.0	     ...
 
 ##### -- 
 ##### -- Data Cleaning
@@ -407,11 +494,25 @@ sns.violinplot(x="gender", y="age", data=df)
 # Correlations and heatmaps
 # cmap: https://matplotlib.org/stable/gallery/color/colormap_reference.html
 # palette: https://seaborn.pydata.org/tutorial/color_palettes.html
+# Use `np.triu()` if the matrix is very large to plot only one half
 sns.heatmap(df.corr(), annot=True, cmap='RdYlGn', fmt=".2f")
 df.corr()['target'].sort_values(ascending=True).plot(kind='bar')
 # -
 correlations = df[selected_fields].corrwith(y) # correlations with target array y
 correlations.sort_values(inplace=True)
+
+# Similarity heatmaps
+# If we have very large matrices (e.g., similarities between vectors)
+# we might want to hide one half of the matrix (because it's symmetric)
+# Taken from:
+# https://github.com/mxagar/course_recommender_streamlit/blob/main/notebooks/02_FE.ipynb
+sns.set_theme(style="white")
+# Upper triangle of a matrix of ones: mask to hide upper half
+mask = np.triu(np.ones_like(similarity_df, dtype=bool))
+_, ax = plt.subplots(figsize=(11, 9))
+cmap = sns.diverging_palette(230, 20, as_cmap=True)
+# Plot a similarity heat map
+sns.heatmap(similarity_df, mask=mask, cmap=cmap, vmin=0.01, vmax=1, center=0, square=True)
 
 # Correlations if we have many numerical variables: we can't visualize the matrix
 corr_values = df[numerical_cols].corr()
@@ -793,6 +894,103 @@ nlp = spacy.load('en_core_web_sm')
 doc = nlp(text)
 words = [token.text for token in doc]
 
+## -- More with NLTK: Vocabulary, DTM/BoW, etc.
+
+# With NLTK we can do many things, not only tokenization, e.g.:
+# get PoS tag and filter according to it.
+# The following snippet shows how to perform text feature extraction
+# using NLTK.
+# The example is from:
+# https://github.com/mxagar/course_recommender_streamlit/blob/main/notebooks/02_FE.ipynb
+
+import nltk as nltk
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import gensim
+
+# Download NLTK packages
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('tagsets')
+
+# We tokenize the text colum values, BUT:
+# - stop words are not considered
+# - only nouns are taken; for that, we need to get the POS (part-of-speech) tags
+def tokenize_text(text, keep_only_nouns=True):
+    """Tokenize a text string.
+    Stop words are removed.
+    If specified, only nouns are taken.
+    
+    Args:
+        text: str
+            Text column/field
+        keep_only_nouns: bool
+            Whether to take only nouns or not (default: True)
+    Returns:
+        word_tokens: list[str]
+            List of word tokens
+    """
+    stop_words = set(stopwords.words('english'))
+    word_tokens = word_tokenize(text)
+    # Remove English stop words and numbers
+    word_tokens = [w for w in word_tokens
+                   if (not w.lower() in stop_words) and (not w.isnumeric())]
+    # Only keep nouns 
+    if keep_only_nouns:
+        # We can get a list of all POS tags with nltk.help.upenn_tagset()
+        filter_list = ['WDT', 'WP', 'WRB', 'FW', 'IN', 'JJR', 'JJS',
+                       'MD', 'PDT', 'POS', 'PRP', 'RB', 'RBR', 'RBS',
+                       'RP']
+        tags = nltk.pos_tag(word_tokens)
+        word_tokens = [word for word, pos in tags if pos not in filter_list]
+
+    return word_tokens
+
+# Run tokenization on the colum
+# We get a list of lists: for each course a list of words/tokens
+tokenized_texts = [tokenize_text(df.iloc[i,:]['text']) for i in range(df.shape[0])]
+tokenized_texts[:1] # [['robots','coming',...]]
+
+# Create a dictionary
+tokens_dict = gensim.corpora.Dictionary(tokenized_texts)
+
+# Vocalubary: token2id dictionary
+print(tokens_dict.token2id) # {'ai': 0, 'apps': 1,...}
+
+# Create Bags of Words (BoWs) for each tokenized course text
+text_bows = [tokens_dict.doc2bow(text) for text in tokenized_texts]
+text_bows[:1] # [[(0,2), (1,2), ...]]
+
+# Create a dataframe which contains the BoWs of each text field
+# flattened along the rows
+doc_indices = [[df.iloc[i,:]['index']]*len(text_bows[i]) for i in range(df.shape[0])]
+doc_ids = [[df.iloc[i,:]['text_id']]*len(text_bows[i]) for i in range(df.shape[0])]
+tokens = [[tokens_dict.get(text_bows[i][j][0]) for j in range(len(text_bows[i]))] for i in range(len(text_bows))]
+bow_values = [[text_bows[i][j][1] for j in range(len(text_bows[i]))] for i in range(len(text_bows))]
+
+# Flatten the lists of lists
+doc_indices = list(itertools.chain(*doc_indices))
+doc_ids = list(itertools.chain(*doc_ids))
+tokens = list(itertools.chain(*tokens))
+bow_values = list(itertools.chain(*bow_values))
+
+# Dictionary for the dataframe
+bow_dicts = {"doc_index": doc_indices,
+             "doc_id": doc_ids,
+             "token": tokens,
+             "bow": bow_values}
+
+text_bows_df = pd.DataFrame(bow_dicts)
+
+text_bows_df.head()
+#       doc_index	doc_id	    token	bow
+# 0	    0	        ML0201EN	ai	    2
+# 1	    0	        ML0201EN	apps	2
+# 2 	0	        ML0201EN	build	2
+# 3	    0	        ML0201EN	cloud	1
+# 4	    0	        ML0201EN	coming	1
+
 ## -- NLP Processing with SpaCy
 
 import spacy
@@ -871,6 +1069,7 @@ tfidf.vocabulary_ # term - index
 tfidf.idf_ # inverse document frequency vector
 tfidf.stop_words_ # words that were ignored due to several reasons...
 
+
 ##### -- 
 ##### -- Feature Selection
 ##### -- 
@@ -887,6 +1086,10 @@ explained_variance = pca.explained_variance_ratio_
 # how many components do we need?
 cumsum = np.cumsum(pca.explained_variance_ratio_)
 d = np.argmax(cumsum >=0.95) + 1
+# If we want to plot it
+component_variance_df = pd.DataFrame(data=cumsum.ravel(), columns=['variance'])
+component_variance_df['components'] = range(1,features.shape[1]+1)
+bplot = sns.barplot(data=component_variance_df, x='components', y = 'variance')
 # Another way to answer the question above:
 # pass varinace ratio float as n_components
 pca = PCA(n_components=0.95)
@@ -1800,7 +2003,7 @@ km.labels_
 # Elbow method: fit clusterings with different number of centroids
 # and take the one from which metric (e.g., inertia) doesn't improve significantly
 inertia = []
-clusters = list(range(10))
+clusters = list(range(2,10))
 for k in clusters:
     kmeans = KMeans(n_clusters=k,
                     init='k-means++',
@@ -2059,6 +2262,19 @@ X30to39.shape, X60to69.shape
 avg_distance(X30to39, X30to39, jaccard_score)
 # 0.6435631883548536
 
+## Distances with scipy
+# https://docs.scipy.org/doc/scipy/reference/spatial.distance.html
+from scipy.spatial.distance import cosine, jaccard, euclidean, cityblock
+bow_1 = np.array([1, 1, 0, 1, 1])
+bow_2 = np.array([1, 1, 1, 0, 1])
+dist_funcs = [cosine, jaccard, euclidean, cityblock]
+for f in dist_funcs:
+    d = f(bow_1, bow_2)
+    if f == cosine:
+        # similarity = 1 - cosine
+        d = 1 - d
+    print(d)
+
 ### --- Dimensionality Reduction: PCA
 
 from sklearn.decomposition import PCA
@@ -2079,6 +2295,14 @@ pca.explained_variance_ratio_
 pca.explained_variance_ratio_.sum() # must be 1
 # Variance of each component
 pca.explained_variance_
+# Sum all explained variances until 95% is reached;
+# how many components do we need?
+cumsum = np.cumsum(pca.explained_variance_ratio_)
+d = np.argmax(cumsum >=0.95) + 1
+# If we want to plot it:
+component_variance_df = pd.DataFrame(data=cumsum.ravel(), columns=['variance'])
+component_variance_df['components'] = range(1,features.shape[1]+1)
+bplot = sns.barplot(data=component_variance_df, x='components', y = 'variance')
 
 ### --- Dimensionality Reduction: Kernel PCA with GridSearchCV
 
@@ -2181,7 +2405,10 @@ fig, ax = plt.subplots()
 
 # This is usually used with
 # - reductions that need a higher interpretablity
-# - topic discovery --> this is shown here
+# - topic discovery
+# - recommender systems: user-item matrix factorization
+
+## NMF Topic Discovery
 
 from sklearn.decomposition import NMF
 
@@ -2223,3 +2450,52 @@ topic_doc.reset_index().groupby('index').mean().idxmax()
 
 # The most important 20 words for topic x
 topic_word.T.sort_values(by='topic_5', ascending=False).head(20)
+
+## NMF Recommender System: User-course ratings
+# Origin: https://github.com/mxagar/course_recommender_streamlit/blob/main/notebooks/04_Collaborative_RecSys.ipynb
+# Note: Usually the library Suprise works better (also in the link above)
+
+from sklearn.decomposition import NMF
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+
+# Dense ratings
+ratings_df = pd.read_csv("../data/ratings.csv")
+#	user	item	rating
+# 0	1889878	CC0101EN	3.0
+# 1	1342067	CL0101EN	3.0
+# ...
+# Dense -> Sparse ratings
+ratings_sparse_df = ratings_df.pivot(index='user', columns='item', values='rating').fillna(0).reset_index().rename_axis(index=None, columns=None)
+#   user	AI0111EN	BC0101EN	...
+# 0	2	    0.0	        2.0
+# ...
+
+# Scikit-learn uses the SPARSE representation
+X_train, X_test = train_test_split(
+    ratings_sparse_df.iloc[:,1:],
+    test_size=0.3, # portion of dataset to allocate to test set
+    random_state=42 # we are setting the seed here, ALWAYS DO IT!
+)
+
+nmf = NMF(n_components=15, init='random', random_state=818)
+W = nmf.fit_transform(X_train) # (X.shape[0]=n_samples, n_components)
+H = nmf.components_ # (n_components, X.shape[1]=n_features)
+X_hat = W@H
+
+W.shape # (23730, 15)
+H.shape # (15, 126)
+
+print('RMSE: ', mean_squared_error(X_train, X_hat, squared=False))
+# RMSE:  0.3360953022513968
+
+# IMPORTANT: The fitted NMF model has constant H components,
+# but W is different for each input data X.
+W_test = nmf.transform(X_test)
+W_test.shape # (10171, 15)
+
+X_test_hat = W_test@H
+
+print('RMSE: ', mean_squared_error(X_test, X_test_hat, squared=False))
+RMSE:  0.3373680254871046
+
