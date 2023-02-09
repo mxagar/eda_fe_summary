@@ -10,3 +10,4 @@ python_manual.txt
 *.html
 .DS_Store
 __pycache__
+Python_DSAlgo_Guide.md

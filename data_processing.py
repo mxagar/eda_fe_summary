@@ -87,6 +87,14 @@ df = pd.concat([X,y],axis=1)
 df.to_csv('data/dataset.csv', sep=',', header=True, index=False)
 df = pd.read_csv('data/dataset.csv')
 
+# Fetch/extract from HTML tables
+# That works when we have page with a clear HTML table in it: <table>...
+year = 2019
+url = "https://www.basketball-reference.com/leagues/NBA_" + str(year) + "_per_game.html"
+html = pd.read_html(url, header = 0)
+df = html[0] # Take first table
+# Then, we'll require some processing and cleaning: drop(), fillna(0), ...
+
 # Serialize and save any python object, e.g., a model/pipeline
 # BUT: be aware that python versions must be consistent
 # when saving and loading.
@@ -131,8 +139,9 @@ df_uniques = pd.DataFrame([[i, len(df[i].unique())] for i in df.columns], column
 binary_variables = list(df_uniques[df_uniques['Unique Values'] == 2].index)
 categorical_variables = list(df_uniques[(6 >= df_uniques['Unique Values']) & (df_uniques['Unique Values'] > 2)].index)
 
-# Cast a variable
+# Cast a variable / dataframe
 df['var'] = df['var'].astype('O')
+df = df.astype('int32')
 
 # IQR = 1.5*(q75-q25) -> outlier detection
 q25, q50, q75 = np.percentile(df['price'], [25, 50, 75])
@@ -180,6 +189,10 @@ df['year'] = df['date'].dt.year
 #		but `df.loc[]` or `df.iloc[]` should be used for changing sliced row values.
 df.loc[['a', 'b'],'BMXLEG'] # df.index = ['a', 'b', ...]
 df.iloc[[0, 1],3]
+# If iloc returns a Series, to make it return a single-row dataframe, use [[]]
+df.iloc[3, :] # Series of row with index value 3
+df.iloc[[3]] # Single-row dataframe or row with index 3
+df.iloc[[2,3]] # Dataframe with rows 2 & 3
 
 # Selection / Filtering: Column selection after name
 col_names = df.columns # 'BMXWT', 'BMXHT', 'BMXBMI', 'BMXLEG', 'BMXARML', ...
@@ -191,6 +204,12 @@ df.loc[:, keep].head()
 # Indexing with booleans: Which column (names) are in keep?
 index_bool = np.isin(df.columns, keep)
 df_BMX = df.iloc[:,index_bool]
+
+# Selection / Filtering: Pandas isin() +  multiple conditions
+# isin() can be handy for categorical variables
+selected_teams = ['A', 'B']
+selected_positions = ['left', 'right']
+df_filtered = df[(df.team.isin(selected_teams) & df.position.isin(selected_positions))]
 
 # Filtering with between
 idx = df['price'].between(min_price, max_price)
@@ -1718,6 +1737,23 @@ def visualize_feature_importance(importance_array):
 # Note that we used n_repeats=5;
 # we can increase that number to have more realistic box plots
 visualize_feature_importance(feature_importances)
+
+### Feature Importances with SHAP
+
+# SHAP library for model explanation
+# https://github.com/slundberg/shap
+# pip install shap
+import shap
+
+# Build Model
+model = RandomForestRegressor()
+model.fit(X, y)
+
+# Explaining the model's predictions using SHAP values
+explainer = shap.TreeExplainer(model)
+shap_values = explainer.shap_values(X)
+shap.summary_plot(shap_values, X)
+shap.summary_plot(shap_values, X, plot_type="bar")
 
 ### --- CROSS-VALIDATION: Hyperparameter Tuning
 
