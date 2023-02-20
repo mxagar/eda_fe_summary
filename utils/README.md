@@ -55,13 +55,16 @@ If you'd like to control where the notebook runs, you need to create a custom en
 # Create environment with YAML, incl. packages
 conda env create -f conda.yaml
 conda activate env-name
+# Or
+conda create --name env-name pip
+condat install <package>
 
 # Install pip dependencies
 pip install requirements.txt
 
 # Track any changes and versions you have
 conda env export > conda_.yaml
-pip freeze > requirements_.txt
+pip list --format=freeze > requirements_.txt
 ```
 
 List of most important dependencies:
