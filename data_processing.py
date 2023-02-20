@@ -84,6 +84,9 @@ sns.set_style('white')
 ##### -- 
 
 df = pd.concat([X,y],axis=1)
+# Other options:
+# parse_dates=['col_name']
+# index_col='col_name'
 df.to_csv('data/dataset.csv', sep=',', header=True, index=False)
 df = pd.read_csv('data/dataset.csv')
 
@@ -94,6 +97,22 @@ url = "https://www.basketball-reference.com/leagues/NBA_" + str(year) + "_per_ga
 html = pd.read_html(url, header = 0)
 df = html[0] # Take first table
 # Then, we'll require some processing and cleaning: drop(), fillna(0), ...
+
+# Get from web as ZIP; extract and load it
+import requests
+import zipfile
+import io
+content = requests.get(
+    "https://archive.ics.uci.edu/.../Bike-Sharing-Dataset.zip").content
+with zipfile.ZipFile(io.BytesIO(content)) as arc:
+    raw_data = pd.read_csv(arc.open("day.csv"), 
+                           header=0, 
+                           sep=',')
+
+# Import a python list
+import ast
+with open('previous_scores.txt', 'r') as f:
+    scores_list = ast.literal_eval(f.read())
 
 # Serialize and save any python object, e.g., a model/pipeline
 # BUT: be aware that python versions must be consistent
@@ -230,6 +249,7 @@ cities = ['Munich', 'London', 'Madrid']
 df_filtered = df[df.location.isin(cities)]
 
 # Joins/Merges
+# More on JOINS: https://www.w3schools.com/sql/sql_join.asp
 #
 # Example:
 # popular_courses_df: pd.DataFrame
@@ -247,7 +267,7 @@ df_filtered = df[df.location.isin(cities)]
 #
 # We want to have the title/name of the course in the
 # dataframe popular_courses.
-# We need to do an inner join!
+# We need to do an inner join! = Intersecting values taken
 popular_courses_ = pd.merge(left=popular_courses_df,
          right=courses_df,
          how='inner',
@@ -258,6 +278,31 @@ popular_courses_ = pd.merge(left=popular_courses_df,
 #   0   CS01    1200        Introduction to Programming
 #   1   MA03    1000        Calculus II
 #   2   CS02    850         Data Structures and Algorithms
+
+# Data Ingestion
+# Merging datasets: OUTER JOINS
+# More on JOINS:
+# https://www.w3schools.com/sql/sql_join.asp
+# https://guides.nyu.edu/quant/merge
+#
+# Example: 
+# df1 and df2 have same columns: col1, col2
+# Some rows appear only in df1, some only in df2, some in both
+# We want to merge both: we need an OUTER JOIN
+# AND we can informatively mark where each row came from
+# with indicator=True
+df_all = df1.merge(df2.drop_duplicates(),
+                   on=['col1','col2'],
+                   how='outer', 
+                   indicator=True)
+# df_all
+#       col1    col2    _merge
+#   0   7       90      both
+#   1   6       81      left_only
+#   2   2       72      right_only
+#   3   9       63      both
+#   ...
+
 
 # Flattening of arrays/lists
 # to create dataframes
@@ -313,6 +358,14 @@ rating_sparse_df.head()
 # 2	5	    2.0	        2.0	        2.0	     ...
 # 3	7   	0.0	        0.0	        0.0	     ...
 # 4	8	    0.0	        0.0	        0.0	     ...
+
+# Adding rows to a DataFrame
+# Define a new row
+new_row = {'col1': 'Monday', 
+           'col2': 1.5, 
+           'col3': 'A'}
+# Append new row
+df = df.append(new_row, ignore_index=True)
 
 ##### -- 
 ##### -- Data Cleaning
@@ -384,6 +437,10 @@ df.drop('C',axis=1,inplace=True) # drop complete column C in place; default axis
 median = df["variable"].median() # also: mean(), std(), mode(), etc.
 # Replace / Impute NA values with median
 df["variable"].fillna(median, inplace = True)
+# Also, note more options:
+# pandas.to_numeric: errors=‘coerce’: invalid parsing will be set as NaN
+# pandas.mean(skipna=True): default is True
+df['variable'].fillna(pd.to_numeric(df['variable'], errors='coerce').mean(skipna=True), inplace=True)
 
 # Imputation: More options
 fill_mode = lambda col: col.fillna(col.mode()[0]) # mode() returns a series, pick first value

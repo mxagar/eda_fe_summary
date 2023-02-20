@@ -56,7 +56,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 - Use `np.log1p()` in case you have `x=0`; `log1p(x) = log(x+1)`.
 - Use `df.apply()` extensively!
 - Make a copy of the dataset if you drop or change variables: `data = df.copy()`.
-- All categorical variables must be enconded as quantitative variables somehow.
+- All categorical variables must be encoded as quantitative variables somehow.
 - Seaborn plots get `plt.figure(figsize=(10,10))` beforehand; pandas plots get `figsize` as argument.
 - `plt.show()` only in scripts!
 - Use a seed whenever there is a random number generation to ensure reproducibility!
@@ -68,6 +68,7 @@ For more information on the motivation of the guide, see my [blog post](https://
 - We can always save any python object as a serialized file using `pickle`; for instance: models or pipelines. But: python versions must be consistent when saving and loading.
 - We can perform SQL-style joins with `pd.merge()`.
 - Use `pivot` to re-arrange the shape of a matrix/data frame.
+- We can add rows to a dataframe with `.append({...})`
 
 ## Data Cleaning
 
