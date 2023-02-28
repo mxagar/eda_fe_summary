@@ -57,7 +57,7 @@ conda env create -f conda.yaml
 conda activate env-name
 # Or
 conda create --name env-name pip
-condat install <package>
+conda install <package>
 
 # Install pip dependencies
 pip install requirements.txt

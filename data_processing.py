@@ -89,6 +89,9 @@ df = pd.concat([X,y],axis=1)
 # index_col='col_name'
 df.to_csv('data/dataset.csv', sep=',', header=True, index=False)
 df = pd.read_csv('data/dataset.csv')
+# Printing
+df.to_string()
+df.to_html()
 
 # Fetch/extract from HTML tables
 # That works when we have page with a clear HTML table in it: <table>...
