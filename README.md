@@ -2,26 +2,31 @@
 
 The steps in the data science pipeline that need to be carried out to answer business questions are:
 
-1. Data Understanding & Formulation of the Questions
+1. Data Ingestion & Understanding and Formulation of the Questions
 2. Data Cleaning
 3. Exploratory Data Analysis
 4. Feature Engineering
 5. Feature Selection
-6. Data Modelling
+6. Data Modeling
 
-The file [data_processing.py](data_processing.py) compiles the most important tools I use for the steps 2-5, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle). Additionally, the folder [`utils/`](utils) contains very basic template files for a data science project setup:
+The file [data_processing.py](data_processing.py) compiles the most important tools I use for all steps 1-6, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle); I focus mainly on steps 1-5 (i.e., data processing). This companion `README.md` provides with some practical guidelines associated with the code, summarized very schematically. Notes:
+
+- This guide assumes familiarity with `python`, `numpy`, `pandas`, `matplotlib`, `seaborn`, `sklearn` and `scipy`, among others.
+- I presume you are acquainted with machine learning and data science concepts.
+- Mainly **tabular data** is considered; however, very basic natural text processing (NLP) approaches are introduced in the feature engineering section.
+- From a data engineering perspective, the steps 1-6 are often assigned to well defined pipelines:
+  - **ETL Pipeline = Extract, Transform, Load**: all the processing necessary to fetch the data from different sources, format them correctly and store everything aggregated for later use. That is mostly covered by the steps *Data Ingestion*, *Data Cleaning* and *Feature Engineering*. Database management is not discussed here, but minor code snippets to deal with SQL databases are provided.
+  - **Inference / Machine Learning Pipeline**: this pipeline takes the dataset produced by the ETL pipeline and transforms it to feed a model, which is trained. That is mostly covered by the steps *Feature Engineering*, *Feature Selection* and *Data Modeling*.
+- Without being the focus, some tips for production are listed, e.g., the creation of `Pipelines` and `Transformer` classes.
+- I have compiled the contents in the guide and the code file during several years, so you might find duplicated and messy sections :sweat_smile:.
+
+In addition to the [data_processing.py](data_processing.py) file, I added the folder [`utils/`](utils), which contains very basic template files that I use for setting up my small data science side projects:
 
 - `README.md`
 - `conda.yaml`
 - `requirements.txt`
 
-In the following, some practical guidelines are summarized very schematically. Notes:
-
-- This guide assumes familiarity with `python`, `numpy`, `pandas`, `matplotlib`, `seaborn`, `sklearn` and `scipy`, among others.
-- Additionally, I presume you are acquainted with machine learning and data science concepts.
-- Finally, mainly **tabular data** is considered; however, very basic natural text processing (MLP) approaches are introduced in the feature engineering section.
-
-For more information on the motivation of the guide, see my [blog post](https://mikelsagardia.io/blog/data-processing-guide.html).
+Finally, for more information on the motivation of the guide, see my [blog post](https://mikelsagardia.io/blog/data-processing-guide.html).
 
 ### Table of Contents
 
@@ -44,8 +49,16 @@ For more information on the motivation of the guide, see my [blog post](https://
     - [Related Links](#related-links)
     - [Authorship](#authorship)
 
-## General
+## Data Ingestion and General, Important Functions
 
+- Import/export formats:
+  - `read_csv()`, `to_csv()`
+  - `read_html()`, `to_html()`
+  - `read_json()`
+  - `read_sql()`, `to_sql()`
+  - `to_string()`
+  - `readlines()`, `writelines()`
+  - `pickle.dump()`, `pickle.load()`
 - Watch at the returned types:
     - If it is a collection or a container, convert it to a `list()`.
     - If it is an array/tuple with one item, access it with `[0]`.
@@ -73,10 +86,12 @@ For more information on the motivation of the guide, see my [blog post](https://
 ## Data Cleaning
 
 - Always do general checks: `df.head()`, `df.info()`, `df.describe()`, `df.shape`.
+- Text encodings: Text or file encodings are mappings between bytes and string symbols; the default encoding, which is also valid for all languages, is `utf-8`. But python also comes with other encodings, too: [Standard Encodings](https://docs.python.org/3/library/codecs.html#standard-encodings). When an encoding is not UFT-8, how to detect which encoding we should use? Python has a file containing a dictionary of encoding names and associated aliases: `encodings.aliases`.
 - Always get lists of column types: `select_dtypes()`.
     - Categorical columns, `object`: `unique()`, `nunique()`, `value_counts()`. Can be subdivided in:
         - `str`: text or category levels.
         - `datetime`: encode with `to_datetime()`.
+        - duration: `pd.to_timedelta()`.
     - Numerical columns, `int`, `float`: `describe()`.
 - Detect and remove duplicates: `duplicated()`, `drop_duplicates()`.
 - Correct inconsistent text/typos in labels, use clear names: `replace()`, `map()`.
@@ -93,9 +108,11 @@ For more information on the motivation of the guide, see my [blog post](https://
     - `dropna()` rows if several fields missing or missing field is key (e.g., target).
     - `drop()` columns if many (> 20-30%) values are missing. 
     - Impute the missing field/column with `fillna()` if few (< 10%) rows missing: `mean()`, `median()`, `mode()`.
+      - Instead of imputing the column aggregate (e.g., mean), we should group by other categorical features and impute the aggregate of that group.
     - More advanced:
         - Predict values with a model.
         - Use k-NN to impute values of similar data-points.
+    - Time series: use forward fill or backward fill, i.e., if the data is ordered in time, we apply *hold last sample* in one direction or the other: `fillna(method='ffill')`.
 - Detect and handle outliers:
     - Linear models are shifted towards the outliers!
     - Keep in mind the empirical rule of 68-95-99.7 (1-2-3 std. dev.).
@@ -426,7 +443,7 @@ However, note that `TfidfVectorizer()` additionally normalizes each row to have 
 
 ## Data Modeling and Evaluation (Supervised Learning)
 
-Data modeling is out of the scope of this guide, because the goal is to focus on the data processing and analysis part prior to creating models. However, some basic modeling steps are compiled, since they often provide feedback for new iterations in the data processing.
+Data modeling is not in the main scope of this guide, because the goal is to focus on the data processing and analysis part prior to creating models. However, some basic modeling steps are compiled, since they often provide feedback for new iterations in the data processing.
 
 - Most common approaches to start with tabular data (supervised learning):
     - Regression (focusing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
@@ -544,7 +561,7 @@ Data modeling is out of the scope of this guide, because the goal is to focus on
 
 ## Dataset Structure: Unsupervised Learning
 
-Unsupervised learning is out of the scope of this guide, because the goal is to focus on the data processing and analysis part. However, some basic techniques related to dataset structure identification are compiled, since they can be very helpful while performing EDA or feature engineering. All in all, unsupervised learning techniques for tabular data can be classified as (1) **clustering** techniques and (2) **dimensionality reduction** techniques for either improving modeling or visualizing the dataset. In both cases, **distance metrics** are fundamental.
+Unsupervised learning is not in the main scope of this guide, because the goal is to focus on the data processing and analysis part. However, some basic techniques related to dataset structure identification are compiled, since they can be very helpful while performing EDA or feature engineering. All in all, unsupervised learning techniques for tabular data can be classified as (1) **clustering** techniques and (2) **dimensionality reduction** techniques for either improving modeling or visualizing the dataset. In both cases, **distance metrics** are fundamental.
 
 - Distance metrics
   - Euclidean distance, L2: `d(x,y) = srqt(sum((x-y)^2))`
@@ -713,7 +730,7 @@ pipe.score(X_test, y_test)
 - My forked repository of the Udemy course [Deployment of Machine Learning Models](https://www.udemy.com/course/deployment-of-machine-learning-models/) by Soledad Galli and Christopher Samiullah: [deploying-machine-learning-models](https://github.com/mxagar/deploying-machine-learning-models).
 - An example where I apply some of the techniques explained here: [airbnb_data_analysis](https://github.com/mxagar/airbnb_data_analysis).
 - A Template Package to Transform Machine Learning Research Notebooks into *Production-Level* Code and Its Application to Predicting Customer Churn:  [customer_churn_production](https://github.com/mxagar/customer_churn_production).
-
+- My guide on SQL: [sql_guide](https://github.com/mxagar/sql_guide).
 
 ## Authorship
 

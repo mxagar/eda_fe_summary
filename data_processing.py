@@ -7,7 +7,7 @@ See the companion README.md with schematic explanations.
 Table of contents:
 
 - Imports
-- General, Useful & Important Functions
+- Loading and General, Useful & Important Functions
 - Data Cleaning
 - Exploratory Data Analysis (EDA)
 - Feature Engineering
@@ -80,18 +80,90 @@ sns.set_context('talk')
 sns.set_style('white')
 
 ##### -- 
-##### -- General, Useful & Important Functions
+##### -- Data Ingestion and General, Useful & Important Functions
 ##### -- 
 
-df = pd.concat([X,y],axis=1)
+df = pd.read_csv('data/dataset.csv')
+# If messy data, and columns might have many types, convert them to str: dtype=str
+# If first rows are info, not CSV: skiprows
+df = pd.read_csv('data/dataset.csv', dtype=str, , skiprows=4)
 # Other options:
 # parse_dates=['col_name']
 # index_col='col_name'
 df.to_csv('data/dataset.csv', sep=',', header=True, index=False)
-df = pd.read_csv('data/dataset.csv')
 # Printing
 df.to_string()
 df.to_html()
+
+# Read from JSON
+# Note: this approach reads a JSON file
+# Important to select orient depending on JSON formatting:
+# https://pandas.pydata.org/docs/reference/api/pandas.read_json.html
+df = pd.read_json('population_data.json', orient='records')
+
+# API + JSON object
+import requests
+# Define URL: Rural population in Switzerland
+url = 'http://api.worldbank.org/v2/country/ch/indicator/SP.RUR.TOTL/?date=1995:2001&format=json&per_page=1000'
+# Send the request
+r = requests.get(url)
+# Convert to JSON: first element is metadata
+r_json = r.json()
+df = pd.DataFrame(r_json[1])
+# Now cleaning is necessary...
+
+# Read from XML
+# Often more manual processing is required
+# Example XML file with these "record" objects and "fields" within:
+# <record>
+#   <field name="Country or Area" key="ABW">Aruba</field>
+#   <field name="Item" key="SP.POP.TOTL">Population, total</field>
+#   <field name="Year">1960</field>
+#   <field name="Value">54211</field>
+# </record>
+# Parse with BeautifulSoup
+from bs4 import BeautifulSoup
+with open("population_data.xml") as fp:
+    soup = BeautifulSoup(fp, "lxml") # lxml is the Parser type
+# Convert the XML into dataframe
+data_dictionary = {'Country or Area':[], 'Year':[], 'Item':[], 'Value':[]}
+for record in soup.find_all('record'): # look for "record" objects
+    for record in record.find_all('field'): # look for "field" objects
+        data_dictionary[record['name']].append(record.text)
+df = pd.DataFrame.from_dict(data_dictionary)
+#   Country or Area	 Year	 Item	               Value
+# 0	Aruba	           1960	 Population, total	 54211
+# ...
+# We need to / can pivot the table for better format
+df = df.pivot(index='Country or Area', columns='Year', values='Value')
+df.reset_index(level=0, inplace=True)
+#  	Country or Area	  1960	    1961	    1962	    1963	1964	...	2017
+# 0	Afghanistan	      8996351	  9166764	  9345868	  ...
+# ...
+
+# Read from SQL
+import sqlite3
+import pandas as pd
+from sqlalchemy import create_engine
+# with SQLite
+# Connect to the database
+conn = sqlite3.connect('population_data.db')
+# Run a query: there is only one table, population_data, and we extract everything
+df = pd.read_sql('SELECT * FROM population_data', conn)
+# with SQLAlchemy
+# Create an engine
+engine = create_engine('sqlite:///population_data.db')
+# Run SELECT * query
+df = pd.read_sql("SELECT * FROM population_data", engine)
+
+# Write to SQLite
+import sqlite3
+conn = sqlite3.connect('dataset.db')
+df = pd.read_csv('dataset.csv')
+# Clean
+columns = [col.replace(' ', '_') for col in df.columns]
+df.columns = columns
+df.to_sql("dataset", conn, if_exists="replace")
 
 # Fetch/extract from HTML tables
 # That works when we have page with a clear HTML table in it: <table>...
@@ -116,6 +188,13 @@ with zipfile.ZipFile(io.BytesIO(content)) as arc:
 import ast
 with open('previous_scores.txt', 'r') as f:
     scores_list = ast.literal_eval(f.read())
+
+# Read from TXT file
+with open("population_data.txt", 'r') as file:
+    # Example: pick first 10 lines
+    lines = file.readlines()[:10]
+    for index, line in enumerate(lines):
+        print(index, line)
 
 # Serialize and save any python object, e.g., a model/pipeline
 # BUT: be aware that python versions must be consistent
@@ -147,6 +226,7 @@ print(now.strftime("%d/%m/%Y %H:%M:%S")) # 17/01/2023 09:12:57
 df.head(3)
 df.info()
 df["price"].describe() # use .T if many columns
+df.dtypes # columns + type
 df.dtypes.value_counts() # counts of each type
 
 # Always save lists of numerical/continuous and categorical columns
@@ -164,6 +244,9 @@ categorical_variables = list(df_uniques[(6 >= df_uniques['Unique Values']) & (df
 # Cast a variable / dataframe
 df['var'] = df['var'].astype('O')
 df = df.astype('int32')
+# Cast a string number with , thousand separators to numeric
+df['value'] = df['totalamt'].str.replace(',', '')
+df['value'] = pd.to_numeric(df['value'])
 
 # IQR = 1.5*(q75-q25) -> outlier detection
 q25, q50, q75 = np.percentile(df['price'], [25, 50, 75])
@@ -196,10 +279,17 @@ df.groupby(['year', 'city'])['var'].median()
 df.groupby('CompanySize')['JobSatisfaction'].mean().dropna().sort_values()
 
 # Dates: are usually 'object' type, they need to be converted & processed
-# Format: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
+# Format:
+#   https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
+#   https://strftime.org
 df['date'] = pd.to_datetime(df['date'], format='%b-%y') # format='%Y-%m-%d'
+df['month'] = df['date'].dt.month # better: month_name()
 df['month'] = df['date'].dt.month_name().str.slice(stop=3)
+df['weekday'] = df['date'].dt.weekday
 df['year'] = df['date'].dt.year
+# Time delta: Duration, to_timedelta
+# https://pandas.pydata.org/docs/reference/api/pandas.to_timedelta.html
+df['duration'] = pd.to_timedelta(df['duration'])
 
 # Pandas slicing:
 # - `df[]` should access only to column names/labels: `df['col_name']`.
@@ -251,7 +341,11 @@ df_filtered = df[(df['location'] == "Munich, Germany") | (df['location'] == "Lon
 cities = ['Munich', 'London', 'Madrid']
 df_filtered = df[df.location.isin(cities)]
 
-# Joins/Merges
+## Combining datasets: concat
+df = pd.concat([X,y],axis=1) # columns after columns, same rows
+df = pd.concat([df1,df2]) # rows after rows, same columns
+
+## Combining datasets: Joins/Merges
 # More on JOINS: https://www.w3schools.com/sql/sql_join.asp
 #
 # Example:
@@ -270,7 +364,7 @@ df_filtered = df[df.location.isin(cities)]
 #
 # We want to have the title/name of the course in the
 # dataframe popular_courses.
-# We need to do an inner join! = Intersecting values taken
+# We need to do an inner join! i.e., intersecting values taken
 popular_courses_ = pd.merge(left=popular_courses_df,
          right=courses_df,
          how='inner',
@@ -282,7 +376,7 @@ popular_courses_ = pd.merge(left=popular_courses_df,
 #   1   MA03    1000        Calculus II
 #   2   CS02    850         Data Structures and Algorithms
 
-# Data Ingestion
+## Combining datasets
 # Merging datasets: OUTER JOINS
 # More on JOINS:
 # https://www.w3schools.com/sql/sql_join.asp
@@ -306,8 +400,7 @@ df_all = df1.merge(df2.drop_duplicates(),
 #   3   9       63      both
 #   ...
 
-
-# Flattening of arrays/lists
+## Flattening of arrays/lists
 # to create dataframes
 import itertools
 id_num = [['doc1','doc1','doc1'], ['doc2','doc2','doc2']]
@@ -329,7 +422,7 @@ df = pd.DataFrame(data_dict)
 # 4	    doc2	your	1
 # 5 	doc2	bye	    2
 
-# Pivoting (see also the next example)
+## Pivoting (see also the next example)
 # Re-arrange previous dataframe df
 df_slice = df[df['id'] == 'doc1']
 df_slice_T = df_slice.pivot(index=['id'], columns='token').reset_index(level=[0])
@@ -340,7 +433,7 @@ df_slice_T = df_slice.pivot(index=['id'], columns='token').reset_index(level=[0]
 # 0	    doc1	2	    3	    1
 df_slice_T.iloc[0,1:].values # [2, 3, 1]
 
-# Pivoting: Another example
+## Pivoting: Another example
 # In this example a dense rating matrix is
 # converted to a sparse user-item matrix
 # Origin: 
@@ -362,7 +455,41 @@ rating_sparse_df.head()
 # 3	7   	0.0	        0.0	        0.0	     ...
 # 4	8	    0.0	        0.0	        0.0	     ...
 
-# Adding rows to a DataFrame
+## Unpivoting a dataset from wide to long format: melt
+# Example:
+# https://github.com/mxagar/data_science_udacity/blob/main/03_DataEngineering/lab/05_combine_data/5_combining_data.ipynb
+#
+# df_rural.columns = 'Country Name', 'Country Code', 'Indicator Name', 'Indicator Code', '1960', ..., '2017'
+df_rural = pd.read_csv('rural_population_percent.csv', skiprows=4)
+# df_electricity.columns = 'Country Name', 'Country Code', 'Indicator Name', 'Indicator Code', '1960', ..., '2017'
+df_electricity = pd.read_csv('electricity_access_percent.csv', skiprows=4)
+# New format: long
+# df_rural.columns = 'Country Name, 'Country Code', 'Indicator Name', 'Indicator Code', 'Year', 'Rural Value'
+df_rural = pd.melt(df_rural, id_vars=['Country Name',
+                                      'Country Code',
+                                      'Indicator Name',
+                                      'Indicator Code'],
+                             var_name='Year',
+                             value_name='Rural Value')
+# df_electricity.columns = 'Country Name, 'Country Code', 'Indicator Name', 'Indicator Code', 'Year', 'Electricity Value'
+df_electricity = pd.melt(df_electricity, id_vars=['Country Name',
+                                                  'Country Code',
+                                                  'Indicator Name',
+                                                  'Indicator Code'],
+                                         var_name='Year',
+                                         value_name='Electricity Value')
+# Drop any columns from the data frames that aren't needed
+df_rural.drop(['Indicator Name', 'Indicator Code'], axis=1, inplace=True)
+df_electricity.drop(['Indicator Name', 'Indicator Code'], axis=1, inplace=True)
+# Merge the data frames together based on their common columns
+# in this case, the common columns are Country Name, Country Code, and Year
+df_merge = df_rural.merge(df_electricity, how='outer',
+                                          on=['Country Name', 'Country Code', 'Year'])
+# Sort the results by country and then by year
+# df_combined.columns = 'Country Name', 'Country Code', 'Indicator Name',' Indicator Code', 'Year', 'Rural Value'
+df_combined = df_merge.sort_values(by=['Country Name', 'Year'])
+
+## Adding rows to a DataFrame
 # Define a new row
 new_row = {'col1': 'Monday', 
            'col2': 1.5, 
@@ -373,6 +500,23 @@ df = df.append(new_row, ignore_index=True)
 ##### -- 
 ##### -- Data Cleaning
 ##### -- 
+
+## Text encodings
+from encodings.aliases import aliases
+# When an encoding is not UFT-8, how to detect which encoding we should use?
+# Python has a file containing a dictionary of encoding names and associated aliases
+alias_values = set(aliases.values())
+for alias in alias_values:
+    try:
+        df = pd.read_csv('mystery.csv', encoding=alias)
+        print(alias) # valid encodings are printed
+    except:
+         pass 
+# Another option: chardet
+# !pip install chardet
+import chardet
+with open("mystery.csv", 'rb') as file:
+    print(chardet.detect(file.read()))
 
 # Rename column names
 # - remove preceding blank space: ' education' -> 'education', etc.
@@ -402,6 +546,8 @@ df.index.is_unique
 no_nulls = set(df.columns[df.isnull().sum()==0])
 # Columns/Feature with more than 75% of values missing
 most_missing_cols = set(df.columns[(df.isnull().sum()/df.shape[0]) > 0.75])
+# Missing values in each row
+df.isnull().sum(axis=1)
 
 # Detect missing values, sort them ascending, plot
 # isnull() == isna()
@@ -440,6 +586,9 @@ df.drop('C',axis=1,inplace=True) # drop complete column C in place; default axis
 median = df["variable"].median() # also: mean(), std(), mode(), etc.
 # Replace / Impute NA values with median
 df["variable"].fillna(median, inplace = True)
+# WARNING: instead of imputing the column aggregate,
+# we should group by other categorical features and impute the aggregate of that group!
+df["var_fill"] = df.groupby("var_group")["var_fill"].transform(lambda x: x.fillna(x.mean()))
 # Also, note more options:
 # pandas.to_numeric: errors=‘coerce’: invalid parsing will be set as NaN
 # pandas.mean(skipna=True): default is True
@@ -453,6 +602,16 @@ df = df.apply(fill_mode, axis=0)
 num_vars = df.select_dtypes(include=['float', 'int']).columns
 for col in num_vars:
     df[col].fillna((df[col].mean()), inplace=True)
+
+# Imputation in time series: Forward Fill and Backward Fill
+# i.e., if the data is ordered in time, we apply *hold last sample* 
+# in one direction or the other. BUT: we need to sort the data!
+df['GDP_ffill'] = df.sort_values(by='year').groupby("country")['GDP'].fillna(method='ffill')
+df['GDP_bfill'] = df.sort_values(by='year').groupby("country")['GDP'].fillna(method='bfill')
+# If only a country
+df['GDP_ffill'] = df.sort_values(by='year')['GDP'].fillna(method='ffill')
+# If the first/last value is NA, we need to run both: ffill and bfill
+df['GDP_ff_bf'] = df.sort_values(by='year')['GDP'].fillna(method='ffill').fillna(method='bfill')
 
 # Box plot: detect outliers that are outside the 1.5*IQR
 # Keeping or removing them depends on our understanding of the data
@@ -484,6 +643,7 @@ df['variable'] = df['variable'].map(dictionary)
 abs_correlations = correlations.map(abs).sort_values()
 
 # Tempodal data: Convert the dates to days since today
+# Format: https://strftime.org
 today = dt.datetime(2022,6,17)
 for col in dat_cols:
     df[col] = pd.to_datetime(df[col], format='%Y-%m-%d')`# format='%d/%m/%Y', etc. 
@@ -2593,5 +2753,5 @@ W_test.shape # (10171, 15)
 X_test_hat = W_test@H
 
 print('RMSE: ', mean_squared_error(X_test, X_test_hat, squared=False))
-RMSE:  0.3373680254871046
+# RMSE:  0.3373680254871046
 
