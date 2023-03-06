@@ -2,7 +2,7 @@
 
 The steps in the data science pipeline that need to be carried out to answer business questions are:
 
-1. Data Ingestion & Understanding and Formulation of the Questions
+1. Data Ingestion/Loading & Understanding and Formulation of the Questions
 2. Data Cleaning
 3. Exploratory Data Analysis
 4. Feature Engineering
@@ -20,45 +20,52 @@ The file [data_processing.py](data_processing.py) compiles the most important to
 - Without being the focus, some tips for production are listed, e.g., the creation of `Pipelines` and `Transformer` classes.
 - I have compiled the contents in the guide and the code file during several years, so you might find duplicated and messy sections :sweat_smile:.
 
-In addition to the [data_processing.py](data_processing.py) file, I added the folder [`utils/`](utils), which contains very basic template files that I use for setting up my small data science side projects:
+In addition to the [data_processing.py](data_processing.py) file, I added
 
-- `README.md`
-- `conda.yaml`
-- `requirements.txt`
+- the folder [`utils/`](utils), which contains very basic template files that I use for setting up my small data science side projects:
+
+  - `README.md`
+  - `conda.yaml`
+  - `requirements.txt`
+
+- the folder [`examples/`](examples), which contains interesting cases in which use the contents from [data_processing.py](data_processing.py) and this `README.md`.
 
 Finally, for more information on the motivation of the guide, see my [blog post](https://mikelsagardia.io/blog/data-processing-guide.html).
 
 ### Table of Contents
 
 - [Data Processing: A Practical Guide](#data-processing-a-practical-guide)
-        - [Table of Contents](#table-of-contents)
-    - [General](#general)
-    - [Data Cleaning](#data-cleaning)
-    - [Exploratory Data Analysis](#exploratory-data-analysis)
-    - [Feature Engineering](#feature-engineering)
-        - [Scikit-Learn Transformers](#scikit-learn-transformers)
-        - [Creation of Transformer Classes](#creation-of-transformer-classes)
-        - [Natural Languange Processing (NLP): Extracting Text Features with Bags of Words](#natural-languange-processing-nlp-extracting-text-features-with-bags-of-words)
-            - [Example](#example)
-    - [Feature Selection](#feature-selection)
-    - [Hypothesis Tests](#hypothesis-tests)
-    - [Data Modeling and Evaluation (Supervised Learning)](#data-modeling-and-evaluation-supervised-learning)
-    - [Dataset Structure: Unsupervised Learning](#dataset-structure-unsupervised-learning)
-    - [Tips for Production](#tips-for-production)
-        - [Pipelines](#pipelines)
-    - [Related Links](#related-links)
-    - [Authorship](#authorship)
+    - [Table of Contents](#table-of-contents)
+  - [Data Ingestion/Loading and General, Important Functions](#data-ingestionloading-and-general-important-functions)
+  - [Data Cleaning](#data-cleaning)
+  - [Exploratory Data Analysis](#exploratory-data-analysis)
+  - [Feature Engineering](#feature-engineering)
+    - [Scikit-Learn Transformers](#scikit-learn-transformers)
+    - [Creation of Transformer Classes](#creation-of-transformer-classes)
+    - [Natural Languange Processing (NLP): Extracting Text Features with Bags of Words](#natural-languange-processing-nlp-extracting-text-features-with-bags-of-words)
+      - [Example](#example)
+  - [Feature Selection](#feature-selection)
+  - [Hypothesis Tests](#hypothesis-tests)
+  - [Data Modeling and Evaluation (Supervised Learning)](#data-modeling-and-evaluation-supervised-learning)
+  - [Dataset Structure: Unsupervised Learning](#dataset-structure-unsupervised-learning)
+  - [Tips for Production](#tips-for-production)
+    - [Pipelines](#pipelines)
+  - [Related Links](#related-links)
+  - [Authorship](#authorship)
 
-## Data Ingestion and General, Important Functions
+## Data Ingestion/Loading and General, Important Functions
 
 - Import/export formats:
   - `read_csv()`, `to_csv()`
   - `read_html()`, `to_html()`
-  - `read_json()`
+  - `read_json()`, `to_json()`
   - `read_sql()`, `to_sql()`
   - `to_string()`
   - `readlines()`, `writelines()`
   - `pickle.dump()`, `pickle.load()`
+- SQL database management: check [sql_guide](https://github.com/mxagar/sql_guide).
+  - SQLite is a single-file relational database engine which comes with the python standard library.
+  - Minimal usage example of SQLite is given in `data_processing.py`.
 - Watch at the returned types:
     - If it is a collection or a container, convert it to a `list()`.
     - If it is an array/tuple with one item, access it with `[0]`.
@@ -78,6 +85,7 @@ Finally, for more information on the motivation of the guide, see my [blog post]
     - `df.iloc[]` can access only to row & column index numbers + booleans: `df.iloc[0,'col_name']`, `df.iloc[:,'col_name']`.
     - `df.loc[]` can access only to row & column labels/names + booleans: `df.loc['a','col_name']`, `df.loc[:,'col_name']`.
     - `df[]` can be used for changing entire column values, but `df.loc[]` or `df.iloc[]` should be used for changing sliced row values.
+- To iterate rows of a dataframe: `df.iterrow()`.
 - We can always save any python object as a serialized file using `pickle`; for instance: models or pipelines. But: python versions must be consistent when saving and loading.
 - We can perform SQL-style joins with `pd.merge()`.
 - Use `pivot` to re-arrange the shape of a matrix/data frame.
@@ -113,17 +121,32 @@ Finally, for more information on the motivation of the guide, see my [blog post]
         - Predict values with a model.
         - Use k-NN to impute values of similar data-points.
     - Time series: use forward fill or backward fill, i.e., if the data is ordered in time, we apply *hold last sample* in one direction or the other: `fillna(method='ffill')`.
+- Categorical variables: category levels often are not as clean as desired, so we often need to process them before encoding them as number (e.g., as dummies).
+    - A common cleaning process consists in using `.replace()` together with `re`, the regex module. More information on regex:
+        - [Regex tutorial — A quick cheatsheet by examples](https://medium.com/factory-mind/regex-tutorial-a-simple-cheatsheet-by-examples-649dc1c3f285)
+        - [Regex cookbook — Top 15 Most common regex](https://medium.com/@fox.jonny/regex-cookbook-most-wanted-regex-aa721558c3c1)
+    - Aggregating similar topics/levels to more general ones can be useful to avoid exploding the number of dummy columns.
 - Detect and handle outliers:
-    - Linear models are shifted towards the outliers!
-    - Keep in mind the empirical rule of 68-95-99.7 (1-2-3 std. dev.).
-    - Compute `stats.zscore()` to check how many std. deviations from the mean; often Z > 3 is considered an outlier.
-    - Histogram plots: `sns.histplot()`.
-    - Box plots: `sns.boxplot()`.
-    - Scatterplots: `plt.scatter()`, `plt.plot()`.
-    - Residual plots: differences between the real/actual target values and the model predictions.
-    - IQR calculation: use `np.percentile()`.
-    - Drop outliers? Only if we think they are not representative.
-    - Do transformations fix the `skew()`? `np.log()`, `np.sqrt()`, `stats.boxcox()`, `stats.yeojohnson()`.
+    - Linear models can be are shifted towards the outliers!
+    - Methods to detect outliers:
+      - Data visualization: in 1D or 2D, plot as visually inspect; in higher dimensions, apply PCA to 2D and inspect.
+      - Clustering (in any dimension): cluster the data and compute distances to centroids; values with large distances are suspicious of being outliers.
+      - Statistical methods:
+        - Z-score (assuming normal distribution): any data point outside from the the 2 or 3-sigma range is an outlier (i.e., `< mean-2*sigma` or `> mean+2*sigma`); 2-sigma is related to the 95% Ci or `alpha = 0.05`. 
+        - Tukey method (no distribution assumption): any data point outside from the 1.5*IQR is an outlier (i.e., `< Q1-1.5*IQR` or `> Q3+1.5*IQR`)
+    - Tips and tools:
+      - Keep in mind the empirical rule of 68-95-99.7 (1-2-3 std. dev.).
+      - Compute `stats.zscore()` to check how many std. deviations from the mean; often Z > 3 is considered an outlier.
+      - Histogram plots: `sns.histplot()`.
+      - Box plots: `sns.boxplot()`, `df['col'].plot(kind='box')`.
+      - Scatterplots: `plt.scatter()`, `plt.plot()`.
+      - Residual plots: differences between the real/actual target values and the model predictions.
+      - For IQR calculation use `np.percentile()`.
+    - When should we drop outliers? Only if we think they are not representative.
+      - Compute candidate outliers in all dimensions, e.g., using Tukey.
+      - Candidate data points that are outliers in all dimensions are maybe not outliers.
+      - Create models with and without candidate outliers and then predict control points; do they change considerably?
+      - Do transformations fix the `skew()`? `np.log()`, `np.sqrt()`, `stats.boxcox()`, `stats.yeojohnson()`.
         - Usually a absolute skewness larger than 0.75 requires a transformation (feature engineering).
 - Temporal data / dates or date-time: they need to be converted with `to_datetime()` and the we need to compute the time (in days, months, years) to a reference date (e.g., today).
 
