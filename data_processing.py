@@ -80,7 +80,7 @@ sns.set_context('talk')
 sns.set_style('white')
 
 ##### -- 
-##### -- Data Ingestion and General, Useful & Important Functions
+##### -- Data Ingestion/Loading and General, Useful & Important Functions
 ##### -- 
 
 df = pd.read_csv('data/dataset.csv')
@@ -100,6 +100,7 @@ df.to_html()
 # Important to select orient depending on JSON formatting:
 # https://pandas.pydata.org/docs/reference/api/pandas.read_json.html
 df = pd.read_json('population_data.json', orient='records')
+df.to_json('population_data.json', orient='records')
 
 # API + JSON object
 import requests
@@ -156,14 +157,66 @@ engine = create_engine('sqlite:///population_data.db')
 # Run SELECT * query
 df = pd.read_sql("SELECT * FROM population_data", engine)
 
-# Write to SQLite
+# Write to SQLite using sqlite3
+# Alternative: SQLAlchemy
+# Look also: https://github.com/mxagar/sql_guide
 import sqlite3
+# Connect to database; file created if not present
 conn = sqlite3.connect('dataset.db')
-df = pd.read_csv('dataset.csv')
-# Clean
-columns = [col.replace(' ', '_') for col in df.columns]
-df.columns = columns
-df.to_sql("dataset", conn, if_exists="replace")
+# Load Table A - or create one
+df_A = pd.read_csv('dataset_A.csv')
+# Load Table B - or create one
+df_B = pd.read_csv('dataset_B.csv')
+# Clean, if necessary
+columns = [col.replace(' ', '_') for col in df_A.columns]
+df_A.columns = columns
+# ...
+# Write tables to database
+df_A.to_sql("table_A", conn, if_exists="replace", index=False)
+df_B.to_sql("table_B", conn, if_exists="replace", index=False)
+# Check (i.e., read)
+df_A_ = pd.read_sql('SELECT * FROM table_A', conn)
+df_B_ = pd.read_sql('SELECT * FROM table_B', conn)
+# Commit changes and close connection
+conn.commit()
+conn.close()
+
+# Insert rows to SQLite
+# WARNING: use better to_sql() and pass entire tables
+# i.e., don't insert row-by-row in a for loop...
+# Connect to the data base, create if file not there
+conn = sqlite3.connect('database.db')
+# Get a cursor
+cur = conn.cursor()
+# Drop the test table in case it already exists
+cur.execute("DROP TABLE IF EXISTS test")
+# Create the test table including project_id as a primary key
+cur.execute("CREATE TABLE test (project_id TEXT PRIMARY KEY, countryname TEXT, countrycode TEXT, totalamt REAL, year INTEGER);")
+# Insert a single row of value into the test table
+project_id = 'a'
+countryname = 'Brazil'
+countrycode = 'BRA'
+totalamt = '100,000'
+year = 1970
+sql_statement = f"INSERT INTO test (project_id, countryname, countrycode, totalamt, year) VALUES ('{project_id}', '{countryname}', '{countrycode}', '{totalamt}', {year});"
+cur.execute(sql_statement)
+# Commit changes made to the database
+conn.commit()
+# Select all from the test table
+cur.execute("SELECT * FROM test")
+cur.fetchall()
+# [('a', 'Brazil', 'BRA', '100,000', 1970)]
+# Insert several rows:
+for index, values in df.iterrows():
+    project_id, countryname, countrycode, totalamt, year = values
+    sql_statement = f"INSERT INTO test (project_id, countryname, countrycode, totalamt, year) VALUES ('{project_id}', '{countryname}', '{countrycode}', '{totalamt}', {year});"
+    cur.execute(sql_string)
+# Commit changes to the dataset after any changes are made
+conn.commit()
+# ...
+# Commit changes and close connection
+conn.commit()
+conn.close()
 
 # Fetch/extract from HTML tables
 # That works when we have page with a clear HTML table in it: <table>...
@@ -241,6 +294,13 @@ df_uniques = pd.DataFrame([[i, len(df[i].unique())] for i in df.columns], column
 binary_variables = list(df_uniques[df_uniques['Unique Values'] == 2].index)
 categorical_variables = list(df_uniques[(6 >= df_uniques['Unique Values']) & (df_uniques['Unique Values'] > 2)].index)
 
+# Unique values with numpy + count
+unique_dates, count = np.unique(dates, return_counts=True)
+
+# Set operations with unique elements
+list(set(df_outliers_population['country']).intersection(df_outliers_gdp['country']))
+list(set(df_outliers_population['country']) - set(df_outliers_gdp['country']))
+
 # Cast a variable / dataframe
 df['var'] = df['var'].astype('O')
 df = df.astype('int32')
@@ -248,7 +308,7 @@ df = df.astype('int32')
 df['value'] = df['totalamt'].str.replace(',', '')
 df['value'] = pd.to_numeric(df['value'])
 
-# IQR = 1.5*(q75-q25) -> outlier detection
+# Tukey rule: 1.5*(q75-q25) = 1.5*IQR -> outlier detection
 q25, q50, q75 = np.percentile(df['price'], [25, 50, 75])
 # Skewness
 df['price'].skew()
@@ -290,7 +350,11 @@ df['year'] = df['date'].dt.year
 # Time delta: Duration, to_timedelta
 # https://pandas.pydata.org/docs/reference/api/pandas.to_timedelta.html
 df['duration'] = pd.to_timedelta(df['duration'])
-
+# Time comparisons / filterings: date might need to be converted with pd
+import datetime as dt
+d = pd.to_datetime(dt.date(1992, 4, 27), utc=True) # sometimes UTC is an issue, eg., when comparing
+df_before =  df[(df['date'] < d)]
+                      
 # Pandas slicing:
 # - `df[]` should access only to column names/labels: `df['col_name']`.
 # - `df.iloc[]` can access only to row & column index numbers + booleans:
@@ -305,6 +369,11 @@ df.iloc[[0, 1],3]
 df.iloc[3, :] # Series of row with index value 3
 df.iloc[[3]] # Single-row dataframe or row with index 3
 df.iloc[[2,3]] # Dataframe with rows 2 & 3
+
+# Iterate the rows of a dataframe
+for index, row in df.iterrow():
+    # Extract columns
+    var1, var2, var3, var4 = row
 
 # Selection / Filtering: Column selection after name
 col_names = df.columns # 'BMXWT', 'BMXHT', 'BMXBMI', 'BMXLEG', 'BMXARML', ...
@@ -329,6 +398,11 @@ df = df[idx].copy()
 
 # Filter and convert to list
 var2_large_list = df[df.var1 > 1.0]['var2'].to_list()
+
+# Filtering with text: .str.contains()
+# Country names can change, sometimes we need to filter non-official names, e.g.:
+# Yogoslavia, Former Yogoslavia, etc.
+df[df.countryname.str.contains('Yugoslavia')]
 
 # Multiple filtering: Several conditions
 waist_median = df_BMX['BMXWAIST'].median()
@@ -613,13 +687,46 @@ df['GDP_ffill'] = df.sort_values(by='year')['GDP'].fillna(method='ffill')
 # If the first/last value is NA, we need to run both: ffill and bfill
 df['GDP_ff_bf'] = df.sort_values(by='year')['GDP'].fillna(method='ffill').fillna(method='bfill')
 
-# Box plot: detect outliers that are outside the 1.5*IQR
+# Cleaning categories with Regex
+# Fields with value '!$10' -> NaN
+df['sector'] = df['sector'].replace('!$10', np.nan)
+# Replace with Regex
+# This looks for string with an exclamation point followed by one or more characters
+df['sector'] = df['sector'].replace('!.+', '', regex=True)
+# Replace with Regex
+# Remove the string '(Historic)' from the sector1 variable
+df['sector'] = df['sector'].replace('^(\(Historic\))', '', regex=True)
+# More on regex:
+# - Tutorial: https://medium.com/factory-mind/regex-tutorial-a-simple-cheatsheet-by-examples-649dc1c3f285
+# - Cookbook: https://medium.com/@fox.jonny/regex-cookbook-most-wanted-regex-aa721558c3c1
+
+# Aggregating categories to general themes to avoid too many dummies
+import re
+# Create an aggregate sector variable which covers general topics
+# For instance: "Transportation: Highways", "Transportation: Airports" -> "Transportation"
+df.loc[:,'sector_aggregates'] = df['sector']
+topics = ['Energy', 'Transportation']
+for topic in topics:
+    # Find all that contain the topic (ignore case), replace NaN with False (i.e., not found)
+    # All found have same general topic
+    df.loc[df['sector_aggregates'].str.contains(topic, re.IGNORECASE).replace(np.nan, False),'sector_aggregates'] = topic
+
+# Outliers - Box plot: detect outliers that are outside the 1.5*IQR
 # Keeping or removing them depends on our understanding of the data
 # Try: boxplots, log transformation, scatterplot with target, Z score
 sns.boxplot(x=df['variable'])
 sns.boxplot(x=np.log(df['variable']))
 df.plot.scatter(x='variable', y='price')
 df['z_variable'] = stats.zscore(df['variable'])
+
+# Outliers - Tukey rule
+def tukey_filter(df, col_name):
+    Q1 = df[col_name].quantile(0.25)
+    Q3 = df[col_name].quantile(0.75)
+    IQR = Q3 - Q1
+    max_value = Q3 + 1.5 * IQR
+    min_value = Q1 - 1.5 * IQR
+    return df[(df[col_name] < max_value) & (df[col_name] > min_value)]
 
 # Manually removing using the index
 outliers_dropped = df.drop(housing.index[[1499,2181]])
@@ -642,7 +749,7 @@ df['variable'] = df['variable'].map(dictionary)
 # Example: Take absolute correlations values 
 abs_correlations = correlations.map(abs).sort_values()
 
-# Tempodal data: Convert the dates to days since today
+# Temporal data: Convert the dates to days since today
 # Format: https://strftime.org
 today = dt.datetime(2022,6,17)
 for col in dat_cols:
@@ -998,6 +1105,7 @@ for col in one_hot_int_cols:
 
 # One-hot encoding of features: Dummy variables with pandas
 # Use drop_first=True to remove the first category and avoid multi-colinearity
+# Note: if a field has NaN, all dummy variables will have a value of 0
 col_dummies = ['var1', 'var2']
 try:
     for col in col_dummies:
