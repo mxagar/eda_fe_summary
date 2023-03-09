@@ -42,7 +42,7 @@ Finally, for more information on the motivation of the guide, see my [blog post]
   - [Feature Engineering](#feature-engineering)
     - [Scikit-Learn Transformers](#scikit-learn-transformers)
     - [Creation of Transformer Classes](#creation-of-transformer-classes)
-    - [Natural Languange Processing (NLP): Extracting Text Features with Bags of Words](#natural-languange-processing-nlp-extracting-text-features-with-bags-of-words)
+    - [Natural Language Processing (NLP): Extracting Text Features with Bags of Words](#natural-language-processing-nlp-extracting-text-features-with-bags-of-words)
       - [Example](#example)
   - [Feature Selection](#feature-selection)
   - [Hypothesis Tests](#hypothesis-tests)
@@ -371,7 +371,7 @@ class MeanImputer(BaseEstimator, TransformerMixin):
         return X
 ```
 
-### Natural Languange Processing (NLP): Extracting Text Features with Bags of Words
+### Natural Language Processing (NLP): Extracting Text Features with Bags of Words
 
 Natural Language Processing is a completely separate topic, as are Image Processing or Computer Vision. If we'd like to model natural language texts as sequences of words, the most effective approaches are (1) [Recurrent Neural Networks](https://en.wikipedia.org/wiki/Recurrent_neural_network) (RNN) or (2) [Transformers](https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)). My following repositories show examples about how we can use Recurrent Neural Networks with text:
 
@@ -394,7 +394,9 @@ However, in simple cases in which we'd like to vectorize short texts that are em
   - We can apply stemming or lemmatization to transform the words to their canonical / dictionary forms.
 - We create a vocabulary with all the unique words.
 
-Then, depending on the application and the model it requires, we can represent texts as
+**Example**: [`examples/ml_nlp_pipeline.py`](./examples/ml_nlp_pipeline.py).
+
+After that processing, depending on the application and the model it requires, we can represent texts as
 
 - Graphs of symbols, i.e., each word/token is a node connected to others.
 - Vectors.
@@ -735,13 +737,19 @@ Thus, among others, we should do the following:
     - or `feature_engine` classes: [feature_engine](https://feature-engine.readthedocs.io/en/latest/),
     - or creating our own functions embedded in derived classes of these, so that they can be added to a `Pipeline` (see above: [Creation of Transformer Classes](#creation-of-transformer-classes)),
     - or with `FunctionTransformer`, which converts any custom function into a transformer.
+    - Also another example: [`examples/ml_nlp_pipeline.py`](./examples/ml_nlp_pipeline.py).
 - Advantages of `Pipelines`:
   - More compact code.
   - Repetitive steps automated.
   - Code easier to understand and modify.
-  - We can apply `GridSearchCV` to the complete `Pipeline`.
-  - We prevent data leakage.
-- Complex/hierarchical pipelines: Use `ColumnTransformer` and `make_pipeline`; look for example in [`data_processing.py`](data_processing.py).
+  - We can apply `GridSearchCV` to the complete `Pipeline`, so we optimize transformer parameters, if necessary.
+  - We prevent data leakage, because the transformers in `GridSearchCV` are fit in each fold with a different subset, so the complete training data is not leaked.
+- More complex/hierarchical pipelines:
+  - Use `ColumnTransformer` and `make_pipeline`:
+    - `ColumnTransformer` enables treating columns as separate dataset slices.
+    - Look for example in [`data_processing.py`](data_processing.py).
+  - Use `FeatureUnion`: it applies several transformations to the complete dataset and concatenates the results.
+    - Look for examples in [`examples/ml_nlp_pipeline.py`](./examples/ml_nlp_pipeline.py).
 - The inference artifact should be a *hierarchical* `Pipeline` composed by two items at the highest level:
     - `processing`: all the processing should be packed into a `Pipeline` using `ColumnTransformer`, as noted above.
     - `classifier` or `regressor`: the model.
