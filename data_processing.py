@@ -177,6 +177,7 @@ df = pd.read_sql('SELECT * FROM population_data', conn)
 # Create an engine
 engine = create_engine('sqlite:///population_data.db')
 # Run SELECT * query
+# WATCH OUT: sqalchemy<2.0
 df = pd.read_sql("SELECT * FROM population_data", engine)
 
 # Write to SQLite using sqlite3
@@ -272,11 +273,21 @@ with open("population_data.txt", 'r') as file:
         print(index, line)
 
 # Serialize and save any python object, e.g., a model/pipeline
-# BUT: be aware that python versions must be consistent
-# when saving and loading.
+# BUT, WARNING: 
+# - Python versions must be consistent when saving and loading.
+# - If we use lambdas as part of pipeline elements, these might have
+# problems while being serialized as pickles; instead, use function definitions
+# which can be imported and/or skops as serializer!
 import pickle
 pickle.dump(model, open('model.pickle','wb')) # wb: write bytes
 model = pickle.load(open('model.pickle','rb')) # rb: read bytes
+# skops: https://skops.readthedocs.io/en/stable/
+# python -m pip install skops
+import skops.io as sio
+with open(pipe_filename, 'wb') as f:
+    sio.dump(model_pipe, f)
+with open(pipe_filename, 'rb') as f:
+    model_pipe = sio.load(f, trusted=True)
 
 # Save ASCII files, e.g. TXT
 lines = ['Readme', 'How to write text files in Python']
@@ -2371,6 +2382,9 @@ numerical_transformer = make_pipeline(
 # Define processing of NLP/text columns
 # This trick is needed because SimpleImputer wants a 2d input, but
 # TfidfVectorizer wants a 1d input. So we reshape in between the two steps
+# WARNING: If we use lambdas as part off pipeline elements, these might have
+# problems while being serialized as pickles; instead, use function definitions
+# which can be imported and/or skops as serializer!
 reshape_to_1d = FunctionTransformer(np.reshape, kw_args={"newshape": -1})
 nlp_transformer = make_pipeline(
     SimpleImputer(strategy="constant", fill_value=""),
