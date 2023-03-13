@@ -361,6 +361,13 @@ sample = df.sample(n=5, replace=False)
 word_list = text.lower().split(' ')
 number = int(text.split(' ')[0])
 
+# Apply string operations to string column values
+# https://github.com/mxagar/disaster_response_pipeline/blob/main/disaster_response/process_data.py
+# Example 1: split text content in columns a;b;c -> a | b | c
+df.col.str.split(pat=";", n=-1, expand=True)
+# Example 2: split content in - and take second value: 'related-1' -> '1'
+df[col] = df[col].str.split('-').str.get(1)
+
 # Group By
 # When grouping by a column/field,
 # we apply the an aggregate function
@@ -603,6 +610,20 @@ new_row = {'col1': 'Monday',
            'col3': 'A'}
 # Append new row
 df = df.append(new_row, ignore_index=True)
+
+## Parsing arguments in "__main__"
+import argparse
+# Create parser
+parser = argparse.ArgumentParser(description="ETL and Training Pipelines")
+parser.add_argument("--config_filepath", type=str, required = False,
+                    help="File path of the configuration file.")
+# ... (more args)
+# Parse arguments
+args = parser.parse_args()
+# Check arg and catch its value
+config_file = "./config.yaml"
+if args.config_filepath:
+    config_file = args.config_filepath
 
 ##### -- 
 ##### -- Data Cleaning
@@ -2459,6 +2480,27 @@ rfc_pipe = search.best_estimator_
 
 print(search.best_score_)
 print(search.best_params_)
+
+### --- Other (More Sophisticated) Pipeline Elements
+
+# Example project:
+# https://github.com/mxagar/disaster_response_pipeline/
+#
+# MultiOutputClassifier
+# https://scikit-learn.org/stable/modules/generated/sklearn.multioutput.MultiOutputClassifier.html
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.ensemble import RandomForestClassifier
+estimator = MultiOutputClassifier(RandomForestClassifier())
+estimator.fit(X, y)
+
+# Feature Union
+# https://scikit-learn.org/stable/modules/generated/sklearn.pipeline.FeatureUnion.html#sklearn.pipeline.FeatureUnion
+from sklearn.pipeline import FeatureUnion
+from sklearn.decomposition import PCA, TruncatedSVD
+union = FeatureUnion([("pca", PCA(n_components=1)),
+                      ("svd", TruncatedSVD(n_components=2))])
+X = [[0., 1., 3], [2., 2., 5]]
+union.fit_transform(X)
 
 ### -- 
 ### -- Dataset Structure (Unsupervised Learning)
