@@ -88,10 +88,13 @@ Finally, for more information on the motivation of the guide, see my [blog post]
     - `df.loc[]` can access only to row & column labels/names + booleans: `df.loc['a','col_name']`, `df.loc[:,'col_name']`.
     - `df[]` can be used for changing entire column values, but `df.loc[]` or `df.iloc[]` should be used for changing sliced row values.
 - To iterate rows of a dataframe: `df.iterrow()`.
-- We can always save any python object as a serialized file using `pickle`; for instance: models or pipelines. But: python versions must be consistent when saving and loading.
+- We can always save any python object as a serialized file using `pickle`; for instance: models or pipelines. **But**: 
+  - Python versions must be consistent when saving and loading.
+  - If we have lambdas in an object the serialized object might have issues storing them; in that case, better use function definitions that can be imported in the loading code or [skops](https://skops.readthedocs.io/en/stable/).
 - We can perform SQL-style joins with `pd.merge()`.
 - Use `pivot` to re-arrange the shape of a matrix/data frame.
 - We can add rows to a dataframe with `.append({...})`
+- Parsing arguments: use `argparse`.
 
 ## Data Cleaning
 
@@ -537,6 +540,7 @@ Data modeling is not in the main scope of this guide, because the goal is to foc
             - `GradientBoostingClassifier` is better than `AdaBoostClassifier`, but it takes longer to train it; try the `xgboost` library instead of `sklearn`.
             - Boosting overfits, thus, perform always a grid search! 
             - **Advice: stick to `RandomForestClassifier` or `GradientBoostingClassifier`with grid search; also, try `xgboost`.**
+      - If several class categories to be predicted simultaneously, use [`MultiOutputClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.multioutput.MultiOutputClassifier.html). Example: [disaster_response_pipeline](https://github.com/mxagar/disaster_response_pipeline/)
 - Always evaluate with a test split that never was exposed to the model
     - Regression: R2, RMSE.
     - Classification: confusion matrix, accuracy, precision, recall, F1, ROC curve (AUC), Precision-Recall curve (for unbalanced classes).
