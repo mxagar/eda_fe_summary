@@ -90,7 +90,7 @@ class StartingVerbExtractor(BaseEstimator, TransformerMixin):
 
 
 def detect_encoding():
-    """Detect encoding of the dataset (default: 'utf_8').
+    """Detect encoding of the dataset (default: 'utf-8').
     
     Args: None
     
