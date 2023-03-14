@@ -28,6 +28,7 @@ dependencies:
   - tqdm
   - pip:
       - protobuf
+      - chardet
       - hydra-joblib-launcher
       - wandb
       - autopep8

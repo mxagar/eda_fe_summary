@@ -2,50 +2,72 @@
 
 The steps in the data science pipeline that need to be carried out to answer business questions are:
 
-1. Data Understanding & Formulation of the Questions
+1. Data Ingestion/Loading & Understanding and Formulation of the Questions
 2. Data Cleaning
 3. Exploratory Data Analysis
 4. Feature Engineering
 5. Feature Selection
-6. Data Modelling
+6. Data Modeling
 
-The file [data_processing.py](data_processing.py) compiles the most important tools I use for the steps 2-5, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle). Additionally, the folder [`utils/`](utils) contains very basic template files for a data science project setup:
-
-- `README.md`
-- `conda.yaml`
-- `requirements.txt`
-
-In the following, some practical guidelines are summarized very schematically. Notes:
+The file [data_processing.py](data_processing.py) compiles the most important tools I use for all steps 1-6, following the [80/20 Pareto principle](https://en.wikipedia.org/wiki/Pareto_principle); I focus mainly on steps 1-5 (i.e., data processing). This companion `README.md` provides with some practical guidelines associated with the code, summarized very schematically. Notes:
 
 - This guide assumes familiarity with `python`, `numpy`, `pandas`, `matplotlib`, `seaborn`, `sklearn` and `scipy`, among others.
-- Additionally, I presume you are acquainted with machine learning and data science concepts.
-- Finally, mainly **tabular data** is considered; however, very basic natural text processing (MLP) approaches are introduced in the feature engineering section.
+- I presume you are acquainted with machine learning and data science concepts.
+- Mainly **tabular data** is considered; however, very basic natural text processing (NLP) approaches are introduced in the feature engineering section.
+- From a data engineering perspective, the steps 1-6 are often assigned to well defined pipelines:
+  - **ETL Pipeline = Extract, Transform, Load**: all the processing necessary to fetch the data from different sources, format them correctly and store everything aggregated for later use. That is mostly covered by the steps *Data Ingestion*, *Data Cleaning* and *Feature Engineering*. Database management is not discussed here, but minor code snippets to deal with SQL databases are provided.
+  - **Inference / Machine Learning Pipeline**: this pipeline takes the dataset produced by the ETL pipeline and transforms it to feed a model, which is trained. That is mostly covered by the steps *Feature Engineering*, *Feature Selection* and *Data Modeling*.
+- Without being the focus, some tips for production are listed, e.g., the creation of `Pipelines` and `Transformer` classes.
+- I have compiled the contents in the guide and the code file during several years, so you might find duplicated and messy sections :sweat_smile:.
 
-For more information on the motivation of the guide, see my [blog post](https://mikelsagardia.io/blog/data-processing-guide.html).
+In addition to the [data_processing.py](data_processing.py) file, I added
+
+- the folder [`utils/`](utils), which contains very basic template files that I use for setting up my small data science side projects:
+
+  - `README.md`
+  - `conda.yaml`
+  - `requirements.txt`
+
+- the folder [`examples/`](examples), which contains interesting cases in which use the contents from [data_processing.py](data_processing.py) and this `README.md`.
+
+Finally, for more information on the motivation of the guide, see my [blog post](https://mikelsagardia.io/blog/data-processing-guide.html).
 
 ### Table of Contents
 
 - [Data Processing: A Practical Guide](#data-processing-a-practical-guide)
-        - [Table of Contents](#table-of-contents)
-    - [General](#general)
-    - [Data Cleaning](#data-cleaning)
-    - [Exploratory Data Analysis](#exploratory-data-analysis)
-    - [Feature Engineering](#feature-engineering)
-        - [Scikit-Learn Transformers](#scikit-learn-transformers)
-        - [Creation of Transformer Classes](#creation-of-transformer-classes)
-        - [Natural Languange Processing (NLP): Extracting Text Features with Bags of Words](#natural-languange-processing-nlp-extracting-text-features-with-bags-of-words)
-            - [Example](#example)
-    - [Feature Selection](#feature-selection)
-    - [Hypothesis Tests](#hypothesis-tests)
-    - [Data Modeling and Evaluation (Supervised Learning)](#data-modeling-and-evaluation-supervised-learning)
-    - [Dataset Structure: Unsupervised Learning](#dataset-structure-unsupervised-learning)
-    - [Tips for Production](#tips-for-production)
-        - [Pipelines](#pipelines)
-    - [Related Links](#related-links)
-    - [Authorship](#authorship)
+    - [Table of Contents](#table-of-contents)
+  - [Data Ingestion/Loading and General, Important Functions](#data-ingestionloading-and-general-important-functions)
+  - [Data Cleaning](#data-cleaning)
+  - [Exploratory Data Analysis](#exploratory-data-analysis)
+  - [Feature Engineering](#feature-engineering)
+    - [Scikit-Learn Transformers](#scikit-learn-transformers)
+    - [Creation of Transformer Classes](#creation-of-transformer-classes)
+    - [Natural Language Processing (NLP): Extracting Text Features with Bags of Words](#natural-language-processing-nlp-extracting-text-features-with-bags-of-words)
+      - [Example](#example)
+  - [Feature Selection](#feature-selection)
+  - [Hypothesis Tests](#hypothesis-tests)
+  - [Data Modeling and Evaluation (Supervised Learning)](#data-modeling-and-evaluation-supervised-learning)
+  - [Dataset Structure: Unsupervised Learning](#dataset-structure-unsupervised-learning)
+  - [Tips for Production](#tips-for-production)
+    - [Pipelines](#pipelines)
+  - [Related Links](#related-links)
+  - [Authorship](#authorship)
 
-## General
+## Data Ingestion/Loading and General, Important Functions
 
+- Import/export formats:
+  - `read_csv()`, `to_csv()`
+  - `read_html()`, `to_html()`
+  - `read_json()`, `to_json()`
+  - `read_sql()`, `to_sql()`
+  - `to_string()`
+  - `readlines()`, `writelines()`
+  - `pickle.dump()`, `pickle.load()`
+- Web scrapping: use `BeautifulSoup`, see minimal example.
+  - However, not that if the content is generated by Javascript, it won't work; check: [Web-scraping JavaScript page with Python](https://stackoverflow.com/questions/8049520/web-scraping-javascript-page-with-python).
+- SQL database management: check [sql_guide](https://github.com/mxagar/sql_guide).
+  - SQLite is a single-file relational database engine which comes with the python standard library.
+  - Minimal usage example of SQLite is given in `data_processing.py`.
 - Watch at the returned types:
     - If it is a collection or a container, convert it to a `list()`.
     - If it is an array/tuple with one item, access it with `[0]`.
@@ -65,18 +87,24 @@ For more information on the motivation of the guide, see my [blog post](https://
     - `df.iloc[]` can access only to row & column index numbers + booleans: `df.iloc[0,'col_name']`, `df.iloc[:,'col_name']`.
     - `df.loc[]` can access only to row & column labels/names + booleans: `df.loc['a','col_name']`, `df.loc[:,'col_name']`.
     - `df[]` can be used for changing entire column values, but `df.loc[]` or `df.iloc[]` should be used for changing sliced row values.
-- We can always save any python object as a serialized file using `pickle`; for instance: models or pipelines. But: python versions must be consistent when saving and loading.
+- To iterate rows of a dataframe: `df.iterrow()`.
+- We can always save any python object as a serialized file using `pickle`; for instance: models or pipelines. **But**: 
+  - Python versions must be consistent when saving and loading.
+  - If we have lambdas in an object the serialized object might have issues storing them; in that case, better use function definitions that can be imported in the loading code or [skops](https://skops.readthedocs.io/en/stable/).
 - We can perform SQL-style joins with `pd.merge()`.
 - Use `pivot` to re-arrange the shape of a matrix/data frame.
 - We can add rows to a dataframe with `.append({...})`
+- Parsing arguments: use `argparse`.
 
 ## Data Cleaning
 
 - Always do general checks: `df.head()`, `df.info()`, `df.describe()`, `df.shape`.
+- Text encodings: Text or file encodings are mappings between bytes and string symbols; the default encoding, which is also valid for all languages, is `utf-8`. But python also comes with other encodings, too: [Standard Encodings](https://docs.python.org/3/library/codecs.html#standard-encodings). When an encoding is not UFT-8, how to detect which encoding we should use? Python has a file containing a dictionary of encoding names and associated aliases: `encodings.aliases`.
 - Always get lists of column types: `select_dtypes()`.
     - Categorical columns, `object`: `unique()`, `nunique()`, `value_counts()`. Can be subdivided in:
         - `str`: text or category levels.
         - `datetime`: encode with `to_datetime()`.
+        - duration: `pd.to_timedelta()`.
     - Numerical columns, `int`, `float`: `describe()`.
 - Detect and remove duplicates: `duplicated()`, `drop_duplicates()`.
 - Correct inconsistent text/typos in labels, use clear names: `replace()`, `map()`.
@@ -93,20 +121,37 @@ For more information on the motivation of the guide, see my [blog post](https://
     - `dropna()` rows if several fields missing or missing field is key (e.g., target).
     - `drop()` columns if many (> 20-30%) values are missing. 
     - Impute the missing field/column with `fillna()` if few (< 10%) rows missing: `mean()`, `median()`, `mode()`.
+      - Instead of imputing the column aggregate (e.g., mean), we should group by other categorical features and impute the aggregate of that group.
     - More advanced:
         - Predict values with a model.
         - Use k-NN to impute values of similar data-points.
+    - Time series: use forward fill or backward fill, i.e., if the data is ordered in time, we apply *hold last sample* in one direction or the other: `fillna(method='ffill')`.
+- Categorical variables: category levels often are not as clean as desired, so we often need to process them before encoding them as number (e.g., as dummies).
+    - A common cleaning process consists in using `.replace()` together with `re`, the regex module. More information on regex:
+        - [Regex tutorial — A quick cheatsheet by examples](https://medium.com/factory-mind/regex-tutorial-a-simple-cheatsheet-by-examples-649dc1c3f285)
+        - [Regex cookbook — Top 15 Most common regex](https://medium.com/@fox.jonny/regex-cookbook-most-wanted-regex-aa721558c3c1)
+    - Aggregating similar topics/levels to more general ones can be useful to avoid exploding the number of dummy columns.
 - Detect and handle outliers:
-    - Linear models are shifted towards the outliers!
-    - Keep in mind the empirical rule of 68-95-99.7 (1-2-3 std. dev.).
-    - Compute `stats.zscore()` to check how many std. deviations from the mean; often Z > 3 is considered an outlier.
-    - Histogram plots: `sns.histplot()`.
-    - Box plots: `sns.boxplot()`.
-    - Scatterplots: `plt.scatter()`, `plt.plot()`.
-    - Residual plots: differences between the real/actual target values and the model predictions.
-    - IQR calculation: use `np.percentile()`.
-    - Drop outliers? Only if we think they are not representative.
-    - Do transformations fix the `skew()`? `np.log()`, `np.sqrt()`, `stats.boxcox()`, `stats.yeojohnson()`.
+    - Linear models can be are shifted towards the outliers!
+    - Methods to detect outliers:
+      - Data visualization: in 1D or 2D, plot as visually inspect; in higher dimensions, apply PCA to 2D and inspect.
+      - Clustering (in any dimension): cluster the data and compute distances to centroids; values with large distances are suspicious of being outliers.
+      - Statistical methods:
+        - Z-score (assuming normal distribution): any data point outside from the the 2 or 3-sigma range is an outlier (i.e., `< mean-2*sigma` or `> mean+2*sigma`); 2-sigma is related to the 95% Ci or `alpha = 0.05`. 
+        - Tukey method (no distribution assumption): any data point outside from the 1.5*IQR is an outlier (i.e., `< Q1-1.5*IQR` or `> Q3+1.5*IQR`)
+    - Tips and tools:
+      - Keep in mind the empirical rule of 68-95-99.7 (1-2-3 std. dev.).
+      - Compute `stats.zscore()` to check how many std. deviations from the mean; often Z > 3 is considered an outlier.
+      - Histogram plots: `sns.histplot()`.
+      - Box plots: `sns.boxplot()`, `df['col'].plot(kind='box')`.
+      - Scatterplots: `plt.scatter()`, `plt.plot()`.
+      - Residual plots: differences between the real/actual target values and the model predictions.
+      - For IQR calculation use `np.percentile()`.
+    - When should we drop outliers? Only if we think they are not representative.
+      - Compute candidate outliers in all dimensions, e.g., using Tukey.
+      - Candidate data points that are outliers in all dimensions are maybe not outliers.
+      - Create models with and without candidate outliers and then predict control points; do they change considerably?
+      - Do transformations fix the `skew()`? `np.log()`, `np.sqrt()`, `stats.boxcox()`, `stats.yeojohnson()`.
         - Usually a absolute skewness larger than 0.75 requires a transformation (feature engineering).
 - Temporal data / dates or date-time: they need to be converted with `to_datetime()` and the we need to compute the time (in days, months, years) to a reference date (e.g., today).
 
@@ -308,24 +353,28 @@ class MeanImputer(BaseEstimator, TransformerMixin):
 
     def __init__(self, variables):
         # Check that the variables are of type list
+        # Save any attributes
         if not isinstance(variables, list):
             raise ValueError('variables should be a list')
         self.variables = variables
 
     def fit(self, X, y=None):
         # Learn and persist mean values in a dictionary
+        # If there is no return, return self
+        # Always define fit()
         self.imputer_dict_ = X[self.variables].mean().to_dict()
         return self
 
     def transform(self, X):
         # Note that we copy X to avoid changing the original dataset
+        # Always define transform()
         X = X.copy()
         for feature in self.variables:
             X[feature].fillna(self.imputer_dict_[feature], inplace=True)
         return X
 ```
 
-### Natural Languange Processing (NLP): Extracting Text Features with Bags of Words
+### Natural Language Processing (NLP): Extracting Text Features with Bags of Words
 
 Natural Language Processing is a completely separate topic, as are Image Processing or Computer Vision. If we'd like to model natural language texts as sequences of words, the most effective approaches are (1) [Recurrent Neural Networks](https://en.wikipedia.org/wiki/Recurrent_neural_network) (RNN) or (2) [Transformers](https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)). My following repositories show examples about how we can use Recurrent Neural Networks with text:
 
@@ -334,12 +383,37 @@ Natural Language Processing is a completely separate topic, as are Image Process
 
 However, in simple cases in which we'd like to vectorize short texts that are embedded in larger tabular datasets, we can use **bags of words**. Let's say we have a corpus of many documents of a similar type (e.g., articles, reviews, etc.); each document is a text. Then, we do the following:
 
-- We tokenize (and maybe stem/lemmatize) all the words in the corpus. A more detailed description of these steps is given [here](https://github.com/mxagar/text_sentiment).
+- We clean the text, often with regex: remove HTML tags, etc.
+- We normalize the text: remove punctuation, numbers, if necessary.
+- We tokenize all the words in the corpus.
+  - A more detailed description of these steps is given [here](https://github.com/mxagar/text_sentiment).
+  - Common package: NLTK, [`nltk.tokenize`](https://www.nltk.org/api/nltk.tokenize.html). Note that NLTK sometimes needs to download packages.
+- We remove the stop words: too frequent words that don't provide much meaning, e.g., *the*, *of*, etc.
+- Optional:
+  - We can apply Part-of-Speech (POS) and Named Entity Recognition (NER) tagging:
+    - [POS-Tagging](https://www.nltk.org/book/ch05.html)
+    - [All possible tags in NLTK](https://stackoverflow.com/questions/15388831/what-are-all-possible-pos-tags-of-nltk)
+    - NLTK has a tagger which uses a predefined grammar; more sophisticated models (Hidden Markov Models or RNNs) should be used to deal with large texts.
+  - We can apply stemming or lemmatization to transform the words to their canonical / dictionary forms.
 - We create a vocabulary with all the unique words.
-- We create a **document-term matrix (DTM)**, with
-    - rows: documents
-    - columns: tokens from vocabulary
-    - cell content: presence/count/frequency of word in document
+
+**Example**: [`examples/ml_nlp_pipeline.py`](./examples/ml_nlp_pipeline.py).
+
+After that processing, depending on the application and the model it requires, we can represent texts as
+
+- Graphs of symbols, i.e., each word/token is a node connected to others.
+- Vectors.
+
+Most applications use vector representations, which are used to build statistical models; vectorization can be done at two levels:
+
+- Document level, `doc2vec`: bags of words or **document-term matrices**; these can be used with models that predict properties of a document, e.g., whether it's spam, sentiment, etc.
+- Word level, `word2vec`: word embeddings; these should be used in models where we're trying to predict words, i.e., for text generation.
+
+A **document-term matrix (DTM)**, is composed by
+
+- rows: documents
+- columns: tokens from vocabulary
+- cell content: presence/count/frequency of word in document
 
 That DTM is our `X` and it can be used to perform supervised (e.g., classification, if we have document labels) or unsupervised learning (e.g., topic discovery).
 
@@ -426,7 +500,7 @@ However, note that `TfidfVectorizer()` additionally normalizes each row to have 
 
 ## Data Modeling and Evaluation (Supervised Learning)
 
-Data modeling is out of the scope of this guide, because the goal is to focus on the data processing and analysis part prior to creating models. However, some basic modeling steps are compiled, since they often provide feedback for new iterations in the data processing.
+Data modeling is not in the main scope of this guide, because the goal is to focus on the data processing and analysis part prior to creating models. However, some basic modeling steps are compiled, since they often provide feedback for new iterations in the data processing.
 
 - Most common approaches to start with tabular data (supervised learning):
     - Regression (focusing on interpretability): `Ridge` (homogeneous coeffs.), `Lasso` (feature selection), , `ElasticNet` (`Ridge + Lasso`), `RandomForestRegressor`.
@@ -466,6 +540,7 @@ Data modeling is out of the scope of this guide, because the goal is to focus on
             - `GradientBoostingClassifier` is better than `AdaBoostClassifier`, but it takes longer to train it; try the `xgboost` library instead of `sklearn`.
             - Boosting overfits, thus, perform always a grid search! 
             - **Advice: stick to `RandomForestClassifier` or `GradientBoostingClassifier`with grid search; also, try `xgboost`.**
+      - If several class categories to be predicted simultaneously, use [`MultiOutputClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.multioutput.MultiOutputClassifier.html). Example: [disaster_response_pipeline](https://github.com/mxagar/disaster_response_pipeline/)
 - Always evaluate with a test split that never was exposed to the model
     - Regression: R2, RMSE.
     - Classification: confusion matrix, accuracy, precision, recall, F1, ROC curve (AUC), Precision-Recall curve (for unbalanced classes).
@@ -544,7 +619,7 @@ Data modeling is out of the scope of this guide, because the goal is to focus on
 
 ## Dataset Structure: Unsupervised Learning
 
-Unsupervised learning is out of the scope of this guide, because the goal is to focus on the data processing and analysis part. However, some basic techniques related to dataset structure identification are compiled, since they can be very helpful while performing EDA or feature engineering. All in all, unsupervised learning techniques for tabular data can be classified as (1) **clustering** techniques and (2) **dimensionality reduction** techniques for either improving modeling or visualizing the dataset. In both cases, **distance metrics** are fundamental.
+Unsupervised learning is not in the main scope of this guide, because the goal is to focus on the data processing and analysis part. However, some basic techniques related to dataset structure identification are compiled, since they can be very helpful while performing EDA or feature engineering. All in all, unsupervised learning techniques for tabular data can be classified as (1) **clustering** techniques and (2) **dimensionality reduction** techniques for either improving modeling or visualizing the dataset. In both cases, **distance metrics** are fundamental.
 
 - Distance metrics
   - Euclidean distance, L2: `d(x,y) = srqt(sum((x-y)^2))`
@@ -666,7 +741,19 @@ Thus, among others, we should do the following:
     - or `feature_engine` classes: [feature_engine](https://feature-engine.readthedocs.io/en/latest/),
     - or creating our own functions embedded in derived classes of these, so that they can be added to a `Pipeline` (see above: [Creation of Transformer Classes](#creation-of-transformer-classes)),
     - or with `FunctionTransformer`, which converts any custom function into a transformer.
-- Complex/hierarchical pipelines: Use `ColumnTransformer` and `make_pipeline`; look for example in [`data_processing.py`](data_processing.py).
+    - Also another example: [`examples/ml_nlp_pipeline.py`](./examples/ml_nlp_pipeline.py).
+- Advantages of `Pipelines`:
+  - More compact code.
+  - Repetitive steps automated.
+  - Code easier to understand and modify.
+  - We can apply `GridSearchCV` to the complete `Pipeline`, so we optimize transformer parameters, if necessary.
+  - We prevent data leakage, because the transformers in `GridSearchCV` are fit in each fold with a different subset, so the complete training data is not leaked.
+- More complex/hierarchical pipelines:
+  - Use `ColumnTransformer` and `make_pipeline`:
+    - `ColumnTransformer` enables treating columns as separate dataset slices.
+    - Look for example in [`data_processing.py`](data_processing.py).
+  - Use `FeatureUnion`: it applies several transformations to the complete dataset and concatenates the results.
+    - Look for examples in [`examples/ml_nlp_pipeline.py`](./examples/ml_nlp_pipeline.py).
 - The inference artifact should be a *hierarchical* `Pipeline` composed by two items at the highest level:
     - `processing`: all the processing should be packed into a `Pipeline` using `ColumnTransformer`, as noted above.
     - `classifier` or `regressor`: the model.
@@ -694,7 +781,8 @@ X_train, X_test, y_train, y_test = train_test_split(X, y,
                                                     random_state=0)
 
 # Add sequential steps to the pipeline: (step_name, class)
-pipe = Pipeline([('scaler', StandardScaler()), ('svc', SVC())])
+pipe = Pipeline([('scaler', StandardScaler()),
+                 ('svc', SVC())])
 
 # The pipeline can be used as any other estimator
 pipe.fit(X_train, y_train)
@@ -713,7 +801,7 @@ pipe.score(X_test, y_test)
 - My forked repository of the Udemy course [Deployment of Machine Learning Models](https://www.udemy.com/course/deployment-of-machine-learning-models/) by Soledad Galli and Christopher Samiullah: [deploying-machine-learning-models](https://github.com/mxagar/deploying-machine-learning-models).
 - An example where I apply some of the techniques explained here: [airbnb_data_analysis](https://github.com/mxagar/airbnb_data_analysis).
 - A Template Package to Transform Machine Learning Research Notebooks into *Production-Level* Code and Its Application to Predicting Customer Churn:  [customer_churn_production](https://github.com/mxagar/customer_churn_production).
-
+- My guide on SQL: [sql_guide](https://github.com/mxagar/sql_guide).
 
 ## Authorship
 
