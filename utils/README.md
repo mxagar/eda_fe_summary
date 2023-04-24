@@ -60,7 +60,7 @@ conda create --name env-name pip
 conda install <package>
 
 # Install pip dependencies
-pip install requirements.txt
+pip install -r requirements.txt
 
 # Track any changes and versions you have
 conda env export > conda_.yaml
