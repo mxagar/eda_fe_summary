@@ -83,6 +83,7 @@ sns.set_style('white')
 ##### -- Data Ingestion/Loading and General, Useful & Important Functions
 ##### -- 
 
+# Reading CSV
 df = pd.read_csv('data/dataset.csv')
 # If messy data, and columns might have many types, convert them to str: dtype=str
 # If first rows are info, not CSV: skiprows
@@ -90,6 +91,10 @@ df = pd.read_csv('data/dataset.csv', dtype=str, , skiprows=4)
 # Other options:
 # parse_dates=['col_name']
 # index_col='col_name'
+# names=column_names
+# na_values='?'
+
+# Writing CSV
 df.to_csv('data/dataset.csv', sep=',', header=True, index=False)
 # Printing
 df.to_string()
@@ -241,6 +246,28 @@ conn.commit()
 conn.commit()
 conn.close()
 
+## Progressbar: visualize progress in heavy loops
+# https://progressbar-2.readthedocs.io/en/latest/
+# pip install progessbar
+import progressbar
+counter = 0
+bar = progressbar.ProgressBar(maxval=len(items)+1, # number of expected counter steps
+                              term_width=50, # width of output
+                              widgets=[progressbar.Bar('=', '[', ']'), # see output below
+                                       '->',
+                                       progressbar.Percentage()])
+bar.start()
+    
+for item in items:
+    # Update the progress bar
+    counter+=1 
+    bar.update(counter)
+    # DO HEAVY WORK with item
+    # ...
+    
+bar.finish()
+# [==========================================]->100%
+
 # Fetch/extract from HTML tables
 # That works when we have page with a clear HTML table in it: <table>...
 year = 2019
@@ -315,6 +342,14 @@ df["price"].describe() # use .T if many columns
 df.dtypes # columns + type
 df.dtypes.value_counts() # counts of each type
 
+# Convert matrix/dict <-> dataframe
+df_matrix = np.matrix(df.head(1000)) # first 1000 entries
+df_matrix = np.matrix(df)
+df_matrix = df.values
+df = pd.DataFrame(data=np.ones((3,3)), columns=['a', 'b', 'c']) # data: np.ndarray
+df = pd.DataFrame(data={'a': [1,2,3], 'b': [4,5,6], 'c': [7,8,9]}) # data: dict
+df.to_dict(orient="list") # experiment with orient
+
 # Always save lists of numerical/continuous and categorical columns
 categorical_cols = list(df.select_dtypes(include = ['object']))
 numerical_cols = list(df.select_dtypes(include = ['float', 'int']))
@@ -333,6 +368,8 @@ unique_dates, count = np.unique(dates, return_counts=True)
 # Set operations with unique elements
 list(set(df_outliers_population['country']).intersection(df_outliers_gdp['country']))
 list(set(df_outliers_population['country']) - set(df_outliers_gdp['country']))
+# Intersection operation with numpy using arrays
+np.intersect1d(movies1, movies2, assume_unique=True)
 
 # Cast a variable / dataframe
 df['var'] = df['var'].astype('O')
@@ -354,6 +391,14 @@ for col in numerical_cols:
 df["condition"].value_counts().sort_values(ascending=False).plot(kind='bar')
 df["condition"].unique()
 
+# Aggregate functions
+df['col'].max()
+df['col'].min()
+df['col'].mean()
+df.max() # axis = 0, 1
+df['col'].idxmax()
+df['col'].idxmin()
+
 # Pandas sample of n=5 rows/data-points that only appear once
 sample = df.sample(n=5, replace=False)
 
@@ -374,6 +419,12 @@ df[col] = df[col].str.split('-').str.get(1)
 df.groupby('species').mean()
 df.groupby('species').agg([np.mean, np.median])
 df.groupby(['year', 'city'])['var'].median()
+df.groupby('species').size() # count
+# Often we want to convert a groupby series to a dataframe
+# and then perform a join
+trees = df.groupby('district_name').size()
+trees = trees.to_frame(name='num_trees') # convert series to dataframe
+pd.merge(districts)
 
 # Average job satisfaction depending on company size
 df.groupby('CompanySize')['JobSatisfaction'].mean().dropna().sort_values()
@@ -394,7 +445,7 @@ df['duration'] = pd.to_timedelta(df['duration'])
 import datetime as dt
 d = pd.to_datetime(dt.date(1992, 4, 27), utc=True) # sometimes UTC is an issue, eg., when comparing
 df_before =  df[(df['date'] < d)]
-                      
+
 # Pandas slicing:
 # - `df[]` should access only to column names/labels: `df['col_name']`.
 # - `df.iloc[]` can access only to row & column index numbers + booleans:
@@ -409,6 +460,9 @@ df.iloc[[0, 1],3]
 df.iloc[3, :] # Series of row with index value 3
 df.iloc[[3]] # Single-row dataframe or row with index 3
 df.iloc[[2,3]] # Dataframe with rows 2 & 3
+
+# Index: it might contain information like column!
+df.index.to_list()
 
 # Iterate the rows of a dataframe
 for index, row in df.iterrow():
@@ -454,6 +508,11 @@ df_BMX[condition1 & condition2].head()
 df_filtered = df[(df['location'] == "Munich, Germany") | (df['location'] == "London, England")]
 cities = ['Munich', 'London', 'Madrid']
 df_filtered = df[df.location.isin(cities)]
+
+# Filtering: queries
+value1 = 1
+value2 = 2
+df.query('col1 == @value1 and col2 > (@value2 -1)')
 
 ## Combining datasets: concat
 df = pd.concat([X,y],axis=1) # columns after columns, same rows
@@ -560,7 +619,7 @@ df_slice_T.iloc[0,1:].values # [2, 3, 1]
 # 2	1990814	ML0120ENv3	3.0
 # 3	380098	BD0211EN	3.0
 # 4	779563	DS0101EN	3.0
-rating_sparse_df = ratingrating_dense_df.pivot(index='user', columns='item', values='rating').fillna(0).reset_index().rename_axis(index=None, columns=None)
+rating_sparse_df = rating_dense_df.pivot(index='user', columns='item', values='rating').fillna(0).reset_index().rename_axis(index=None, columns=None)
 rating_sparse_df.head()
 # 	user	AI0111EN	BC0101EN	BC0201EN ...
 # 0	2	    0.0	        3.0	        0.0	     ...
@@ -676,6 +735,8 @@ no_nulls = set(df.columns[df.isnull().sum()==0])
 most_missing_cols = set(df.columns[(df.isnull().sum()/df.shape[0]) > 0.75])
 # Missing values in each row
 df.isnull().sum(axis=1)
+# Count number of non-NaN values in a np.ndarray
+num_values = np.count_nonzero(~np.isnan(matrix))
 
 # Detect missing values, sort them ascending, plot
 # isnull() == isna()
@@ -810,6 +871,11 @@ for col in dat_cols:
     df[col] = pd.to_datetime(df[col], format='%Y-%m-%d')`# format='%d/%m/%Y', etc. 
     df[col] = df[col].apply(lambda col: int((today-col).days))
 
+# Convert Unix time / timestamp to datetime
+# 1381006850 -> 2013-10-05 21:00:50
+import datetime
+change_timestamp = lambda val: datetime.datetime.fromtimestamp(int(val)).strftime('%Y-%m-%d %H:%M:%S')
+df['date'] = df['timestamp'].apply(change_timestamp)
 
 ##### -- 
 ##### -- Exploratory Data Analysis (EDA)
@@ -1725,6 +1791,119 @@ sns.boxplot(x=df.charges,y=df.smoker,data=data).set(title="Smoker vs Charges")
 alpha = 0.05
 t_val, p_value = stats.ttest_ind(smoker_char, nonsmoker_char)
 p_value_onetail = p_value/2 # p_value -> 0 (reject H0)
+
+## Ranked Sum - Mann Whitney U
+
+# Equivalent to Z/T-test, but without normality assumption
+# https://github.com/mxagar/data_science_udacity/tree/main/04_ExperimentalDesign_RecSys/lab/Experiments
+
+import scipy.stats as stats
+
+def ranked_sum(x, y, alternative = 'two-sided'):
+    """
+    Return a p-value for a ranked-sum test, assuming no ties.
+    
+    Input parameters:
+        x: 1-D array-like of data for first group
+        y: 1-D array-like of data for second group
+        alternative: type of test to perform, {'two-sided', less', 'greater'}
+    
+    Output value:
+        p: estimated p-value of test
+    """
+    
+    # compute U
+    u = 0
+    for i in x:
+        wins = (i > y).sum()
+        ties = (i == y).sum()
+        u += wins + 0.5 * ties
+    
+    # compute a z-score
+    n_1 = x.shape[0]
+    n_2 = y.shape[0]
+    mean_u = n_1 * n_2 / 2
+    sd_u = np.sqrt( n_1 * n_2 * (n_1 + n_2 + 1) / 12 )
+    z = (u - mean_u) / sd_u
+    
+    # compute a p-value
+    if alternative == 'two-sided':
+        p = 2 * stats.norm.cdf(-np.abs(z))
+    if alternative == 'less':
+        p = stats.norm.cdf(z)
+    elif alternative == 'greater':
+        p = stats.norm.cdf(-z)
+    
+    return p
+
+## Sign Test
+
+# Equivalent to Z/T-test with paired/repeated measures, but without normality assumption
+# https://github.com/mxagar/data_science_udacity/tree/main/04_ExperimentalDesign_RecSys/lab/Experiments
+
+import scipy.stats as stats
+
+def sign_test(x, y, alternative = 'two-sided'):
+    """
+    Return a p-value for a ranked-sum test, assuming no ties.
+    
+    Input parameters:
+        x: 1-D array-like of data for first group
+        y: 1-D array-like of data for second group
+        alternative: type of test to perform, {'two-sided', less', 'greater'}
+    
+    Output value:
+        p: estimated p-value of test
+    """
+    
+    # compute parameters
+    n = x.shape[0] - (x == y).sum()
+    k = (x > y).sum() - (x == y).sum()
+
+    # compute a p-value
+    if alternative == 'two-sided':
+        p = min(1, 2 * stats.binom(n, 0.5).cdf(min(k, n-k)))
+    if alternative == 'less':
+        p = stats.binom(n, 0.5).cdf(k)
+    elif alternative == 'greater':
+        p = stats.binom(n, 0.5).cdf(n-k)
+    
+    return p
+
+## Experiment Size and Power
+
+# Compute number of recordings/data-points necessary to see an effect of a given poser 1-beta
+# assuming an alpha (Type I error).
+# This formula works with ratios/proportions.
+# https://github.com/mxagar/data_science_udacity/tree/main/04_ExperimentalDesign_RecSys/lab/Experiments
+
+def experiment_size(p_null, p_alt, alpha = .05, beta = .20):
+    """
+    Compute the minimum number of samples needed to achieve a desired power
+    level for a given effect size.
+    
+    WARNING: This formula is maybe one-sided, but we could use a two-sided approach?
+    
+    Input parameters:
+        p_null: base success rate under null hypothesis
+        p_alt : desired success rate to be detected
+        alpha : Type-I error rate
+        beta  : Type-II error rate
+    
+    Output value:
+        n : Number of samples required for each group to obtain desired power
+    """
+    
+    # Get necessary z-scores and standard deviations (@ 1 obs per group)
+    z_null = stats.norm.ppf(1 - alpha)
+    z_alt  = stats.norm.ppf(beta)
+    sd_null = np.sqrt(p_null * (1-p_null) + p_null * (1-p_null))
+    sd_alt  = np.sqrt(p_null * (1-p_null) + p_alt  * (1-p_alt) )
+    
+    # Compute and return minimum sample size
+    p_diff = p_alt - p_null
+    n = ((z_null*sd_null - z_alt*sd_alt) / p_diff) ** 2
+    return np.ceil(n)
 
 ## One-way ANOVA: >2 means
 
@@ -2993,10 +3172,21 @@ ratings_df = pd.read_csv("../data/ratings.csv")
 # 1	1342067	CL0101EN	3.0
 # ...
 # Dense -> Sparse ratings
+# WARNING: make sure if you really need fillna() or not
 ratings_sparse_df = ratings_df.pivot(index='user', columns='item', values='rating').fillna(0).reset_index().rename_axis(index=None, columns=None)
 #   user	AI0111EN	BC0101EN	...
 # 0	2	    0.0	        2.0
 # ...
+# Pivot might very memory expensive, 
+# if we have issues with it, an alternative could be:
+# https://stackoverflow.com/questions/39648991/pandas-dataframe-pivot-not-fitting-in-memory
+# WARNING: no fillna() is applied in this example, in contrast to before
+ratings_sparse_df = ratings_df.groupby(['user', 'item'])['rating'].max().unstack()
+# Imagine we have a user-item interaction dataframe without ratings, just interactions
+# We can create a temp column with interactions and from it create a 0/1 interactions matrix as follows 
+# df.columns: article_id, title, user_id
+df['interaction'] = 1
+intractions_df = df.groupby(['user_id', 'article_id'])['interaction'].max().unstack().fillna(0)
 
 # Scikit-learn uses the SPARSE representation
 X_train, X_test = train_test_split(
