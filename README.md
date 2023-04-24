@@ -50,7 +50,7 @@ Finally, for more information on the motivation of the guide, see my [blog post]
   - [Dataset Structure: Unsupervised Learning](#dataset-structure-unsupervised-learning)
   - [Tips for Production](#tips-for-production)
     - [Pipelines](#pipelines)
-  - [Related Links](#related-links)
+  - [Other Type of Data and Interesting Links](#other-type-of-data-and-interesting-links)
   - [Authorship](#authorship)
 
 ## Data Ingestion/Loading and General, Important Functions
@@ -87,6 +87,13 @@ Finally, for more information on the motivation of the guide, see my [blog post]
     - `df.iloc[]` can access only to row & column index numbers + booleans: `df.iloc[0,'col_name']`, `df.iloc[:,'col_name']`.
     - `df.loc[]` can access only to row & column labels/names + booleans: `df.loc['a','col_name']`, `df.loc[:,'col_name']`.
     - `df[]` can be used for changing entire column values, but `df.loc[]` or `df.iloc[]` should be used for changing sliced row values.
+- Filtering: Apart form the conditional slicing, we can also use `df.query()`.
+- Always process dates: convert to `datetime`.
+- Manage and create dataframes as done with SQL tables! For instance, use:
+  - `groupby()`: group categories.
+    - Aggregation functions: `.mean()`, `.agg(...)`, `.size()`, ...
+    - To convert resulting series to a dataframe: `.to_frame()`.
+  - `merge()`: SQL-stlyle joins.
 - To iterate rows of a dataframe: `df.iterrow()`.
 - We can always save any python object as a serialized file using `pickle`; for instance: models or pipelines. **But**: 
   - Python versions must be consistent when saving and loading.
@@ -95,6 +102,8 @@ Finally, for more information on the motivation of the guide, see my [blog post]
 - Use `pivot` to re-arrange the shape of a matrix/data frame.
 - We can add rows to a dataframe with `.append({...})`
 - Parsing arguments: use `argparse`.
+- Heavy loops: use `progressbar` or similar utilities to visualize progress.
+- Large datasets: if the dataset doesn't fit in memory, we could read it chunk by chunk using pandas: [Iterating through files chunk by chunk](https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#io-chunking)
 
 ## Data Cleaning
 
@@ -363,6 +372,7 @@ class MeanImputer(BaseEstimator, TransformerMixin):
         # If there is no return, return self
         # Always define fit()
         self.imputer_dict_ = X[self.variables].mean().to_dict()
+        # Always return self!
         return self
 
     def transform(self, X):
@@ -792,7 +802,23 @@ pred = pipe.predict(X_test)
 pipe.score(X_test, y_test)
 ```
 
-## Related Links
+## Other Type of Data and Interesting Links
+
+Data processing and modeling guides for other **specific types of data**:
+
+- Geospatial data: [`space_exploration/geospatial_data_guide`](https://github.com/mxagar/space_exploration/tree/main/geospatial_data_guide)
+- Images:
+  - [`computer_vision_udacity/01_Intro_Computer_Vision`](https://github.com/mxagar/computer_vision_udacity/tree/main/01_Intro_Computer_Vision)
+  - [`computer_vision_udacity/Catalog_CV_Functions.md`](https://github.com/mxagar/computer_vision_udacity/blob/main/Catalog_CV_Functions.md)
+  - [`deep_learning_udacity/02_Pytorch_Guide`](https://github.com/mxagar/deep_learning_udacity/tree/main/02_Pytorch_Guide)
+  - [`deep_learning_udacity/02_Keras_Guide`](https://github.com/mxagar/deep_learning_udacity/tree/main/02_Keras_Guide)
+<!--
+- IOT data
+- Time series
+- ECG
+-->
+
+General links:
 
 - My notes of the [IBM Machine Learning Professional Certificate](https://www.coursera.org/professional-certificates/ibm-machine-learning) from Coursera: [machine_learning_ibm](https://github.com/mxagar/machine_learning_ibm).
 - My notes of the [Statistics with Python Specialization](https://www.coursera.org/specializations/statistics-with-python) from Coursera (University of Michigan): [statistics_with_python_coursera](https://github.com/mxagar/statistics_with_python_coursera).
