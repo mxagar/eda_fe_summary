@@ -2143,6 +2143,140 @@ search.fit(X_train, y_train)
 search.best_score_ # 1, be aware of the overfitting!
 search.best_params_
 # ---
+#
+# XGBoost
+# Installation:
+#   pip install graphviz
+#   pip install xgboost
+# Detailed guide:
+#   https://github.com/mxagar/datacamp_notes/blob/main/Course_XGBoost/XGBoost_Datacamp.md
+
+## XGBoost Classification - Example with Learning API
+import pandas as pd
+import xgboost as xgb
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+# Load Dataset
+housing_data = pd.read_csv("../data/ames_housing_trimmed_processed.csv")
+X = housing_data[housing_data.columns.tolist()[:-1]]
+y = housing_data[housing_data.columns.tolist()[-1]]
+X_train, X_test, y_train, y_test= train_test_split(X,
+                                                   y,
+                                                   test_size=0.2,
+                                                   random_state=123)
+
+# Create the DMatrix: DM_train, DM_test
+# With the Learning API, we need to manually create the DMatrix data structure
+DM_train = xgb.DMatrix(data=X_train,label=y_train)
+DM_test =  xgb.DMatrix(data=X_test,label=y_test)
+
+# Create the parameter dictionary: params
+#   https://xgboost.readthedocs.io/en/stable/parameter.html
+# Objective functions:
+#   reg:linear - regression (deprecated)
+#   reg:squarederror - regression
+#   reg:logistic - classification, class label output
+#   binary:logistic - classification, class probability output
+params = {"objective":"reg:logistic",
+          "booster":"gbtree", # Trees are "gbtree" (default), Linear learners (avoid) "gblinear"
+          "max_depth":2}
+# Train: same API for regression/classification
+# The type of problem is defined in param["objective"]
+xgbm = xgb.train(params=params,
+                 dtrain=DM_train,
+                 num_boost_round=10) # = number of weak learners
+# Predict
+preds = xgbm.predict(DM_test)
+
+# Alternative: Cross-Validation
+# Perform cross-validation with another metric: AUC
+cv_results = xgb.cv(dtrain=DM_train,
+                    params=params, 
+                    nfold=3, # number of non-overlapping folds
+                    num_boost_round=5, # number of base learners
+                    metrics="auc", # "error", "rmse", "mae", ...
+                    as_pandas=True, # If matrix should be converted to pandas
+                    seed=123)
+# Print cv_results
+print(cv_results)
+#    train-auc-mean  train-auc-std  test-auc-mean  test-auc-std
+# 0        0.907307       0.025788       0.694683      0.057410
+# 1        0.951466       0.017800       0.720245      0.032604
+# 2        0.975673       0.009259       0.722732      0.018837
+
+
+## XGBoost Regression - Example with Scikit-Learn API and RandomizedSearchCV
+# The Scikit-Learn API is used via xgb.XGBRegressor() or gb.XGBClassifier()
+import pandas as pd
+import xgboost as xgb
+import numpy as np
+from sklearn.model_selection import RandomizedSearchCV
+
+# Load Dataset
+housing_data = pd.read_csv("../data/ames_housing_trimmed_processed.csv")
+X = housing_data[housing_data.columns.tolist()[:-1]]
+y = housing_data[housing_data.columns.tolist()[-1]]
+X_train, X_test, y_train, y_test= train_test_split(X,
+                                                   y,
+                                                   test_size=0.2,
+                                                   random_state=123)
+# Parameter space tested by RandomizedSearchCV
+# All possible combinations are: 20 * 1 * 20 = 400
+# BUT: we limit to n_iter=25 the number of combinations
+# And we will train each of them 4-fold with CV
+# NOTE: The parameter names with the Scikit-Learn API are different
+# eta -> learning_rate
+# num_boost_round -> n_estimators
+gbm_param_grid = {'learning_rate': np.arange(0.05,1.05,.05), # arange: 20 values
+                  'n_estimators': [200],
+                  'subsample': np.arange(0.05,1.05,.05)} # arange: 20 values
+
+# Scikit-Learn API
+# We can fit() and predict():
+#   gbm.fit(X_train, y_train)
+#   preds = gbm.predict(X_test)
+gbm = xgb.XGBRegressor()
+randomized_mse = RandomizedSearchCV(estimator=gbm,
+                                    param_distributions=gbm_param_grid,
+                                    n_iter=25, # number of combinations
+                                    scoring='neg_mean_squared_error',
+                                    cv=4,
+                                    verbose=1)
+
+randomized_mse.fit(X_train, y_train)
+print("Best parameters found: ",randomized_mse.best_params_)
+print("Lowest RMSE found: ", np.sqrt(np.abs(randomized_mse.best_score_)))
+
+## XGBoost: Tree and Feature Importance Visualization
+import xgboost as xgb
+import pandas as pd
+import matplotlib.pyplot as plt
+
+housing_data = pd.read_csv("../data/ames_housing_trimmed_processed.csv")
+X,y = housing_data.iloc[:,:-1],housing_data.iloc[:,-1]
+housing_dmatrix = xgb.DMatrix(data=X, label=y)
+
+params = {"objective":"reg:squarederror", "max_depth":2}
+xg_reg = xgb.train(params=params,
+                   dtrain=housing_dmatrix,
+                   num_boost_round=10) # 10 trees in total
+
+# Plot the first tree
+# num_trees refers to the tree, starting with 0
+xgb.plot_tree(xg_reg, num_trees=0)
+plt.show()
+
+# Plot the last tree sideways
+xgb.plot_tree(xg_reg, num_trees=9, rankdir="LR")
+plt.show()
+
+# Plot the feature importances
+xgb.plot_importance(xg_reg)
+plt.show()
+
+#
+# ---
 from sklearn.naive_bayes import GaussianNB
 model = GaussianNB()
 # ---

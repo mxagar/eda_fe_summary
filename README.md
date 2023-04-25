@@ -527,7 +527,7 @@ Data modeling is not in the main scope of this guide, because the goal is to foc
                 - `C = 1 / lambda`
             - However, non-linear SVMs are time-intensive as the number of features and data-points increase, because kernels are used based on the similarities of a point to all the landmarks in the dataset. Alternative: use approximate kernels with sampling and linear SVMs
             - Approximate kernels such as `Nystroem` and `RBFSampler` are used to transform the `X` with sampled approximative kernels; then, we use a `LinearSVC` or `SGDClassifier` with the transformed dataset; that is much faster for large datasets with many features.
-            - Use `GridSearchCV` to detect the optimum hyperparameters.
+            - Use `GridSearchCV` or `RandomSearchCV` to detect the optimum hyperparameters.
         - `DecisionTreeClassifier`
             - Decision trees are nice to interpret when we plot the trees
             - However, they overfit the dataset if no constraints are set to the tree; therefore, the usual approach is:
@@ -548,8 +548,42 @@ Data modeling is not in the main scope of this guide, because the goal is to foc
             - `AdaBoostClassifier` can take different base learners, not only trees.
             - `RandomForestClassifier` forests do not overfit with more learners/trees, the performance plateaus; they are fast, because the trees are independently trained.
             - `GradientBoostingClassifier` is better than `AdaBoostClassifier`, but it takes longer to train it; try the `xgboost` library instead of `sklearn`.
-            - Boosting overfits, thus, perform always a grid search! 
-            - **Advice: stick to `RandomForestClassifier` or `GradientBoostingClassifier`with grid search; also, try `xgboost`.**
+              - Boosting overfits, thus, perform always a grid/random/bayesian search! 
+            - **Advice: stick to `RandomForestClassifier`, `GradientBoostingClassifier` or `xgboost` with some kind of hyperparameter search.**
+            - **XGBoost**:
+              - See notes: [datacamp_notes/Course_XGBoost](https://github.com/mxagar/datacamp_notes/tree/main/Course_XGBoost).
+              - Implementation of the [Gradient Boosting](https://en.wikipedia.org/wiki/Gradient_boosting) algorithm in C++ which has bindings to other languages, such as Python. Properties:
+                - Fast
+                - Best performance
+                - Parallelizable: on single computer and across network.
+                - Classification and regression.
+              - The [Python API](https://xgboost.readthedocs.io/en/stable/python/python_api.html) is easy to use and has two major flavors or sub-APIs:
+                - The **Scikit-Learn API**: We instantiate `XGBRegressor()` or `XGBClassifier` and then we can `fit()` and `predict()`, using the typical Scikit-Learn parameters; we can even use those objects with other Scikit-Learn modules, such as `Pipeline`, `GridSearchCV` or `RandomSearchCV`.
+                - The **Learning API**: The native XGBoost Python API requires to convert the dataframes into `DMatrix` objects first; then, we have powerful methods which allow for tuning many parameters: `xgb.cv()`, `xgb.train()`. The native/learning API is very easy to use. **Note: the parameter names are different compared to the Scikit-Learn API!**
+              - XGBoost has two types of weak or base learners:
+                - CART Decision Trees (Classification and Regression Trees): they have a float in the leaves, and then a threshold can be used for classification tasks. These are commonly used.
+                - Linear learners; these should not be used, because they don't capture non-linearities.
+              - Boosting algorithm:
+                - Each weak learner is created in a boosting round and it is fit to subset of the total dataset; they are trained sequentially.
+                - The new base learners are fit to the residual errors (or gradients) of the previous learners, which means that the predictions of each tree/learner depend on the predictions of the previous trees/learners.
+                - If we use trees, we can select the number of features to be selected randomly to build the tree, and the depth of the trees. Those are related to the complexity of the model, i.e., the more complex, the more overfitting risk.
+                - We can apply regularization if the model is overfitting.
+              - Most common parameters, taken from [Python API](https://xgboost.readthedocs.io/en/stable/python/python_api.html):
+                - Tree weak learner:
+                  - `eta` or `learning_rate`: how quickly we fit the residual error. High values lead to quicker fits.
+                  - `gamma`: min loss reduction to create new tree split. Higher value, less splits, less complexity, less overfitting.
+                  - `lambda`: L2 reg on leaf weights. Higher value, less complexity.
+                  - `alpha`: L1 reg on leaf weights. Higher value, less complexity.
+                  - `max_depth`: max depth per tree; how deep each tree is allowed to grow in each round. Higher value, **more** complexity.
+                  - `subsample`: fraction of total samples used per tree; in each boosting round, a tree takes one subset of all data points, this value refers to the size of this subset. Higher value, **more** complexity. 
+                  - `colsample_bytree`: fraction of features used per each tree or boosting round. Not all features need to be used by each weak learner or boosting round. This value refers to how many from the total amount are used, selected randomly. A low value of this parameter is like more regularization.
+                - Linear weak learner (much less hyperparameters):
+                  - `lambda`: L2 reg on weights. Higher value, less complexity.
+                  - `alpha`: L1 reg on weights. Higher value, less complexity.
+                  - `lambda_bias`: L2 reg term on bias. Higher value, less complexity.
+                - For any type base/weak learner, recall that we can tune the number of boostings or weak learners we want in the `cv()` or `train()` call:
+                  - `num_boost_round`
+                  - `early_stopping_rounds`
       - If several class categories to be predicted simultaneously, use [`MultiOutputClassifier`](https://scikit-learn.org/stable/modules/generated/sklearn.multioutput.MultiOutputClassifier.html). Example: [disaster_response_pipeline](https://github.com/mxagar/disaster_response_pipeline/)
 - Always evaluate with a test split that never was exposed to the model
     - Regression: R2, RMSE.
@@ -608,7 +642,7 @@ Data modeling is not in the main scope of this guide, because the goal is to foc
         - Regression: `KFold`
         - Classification: `StratifiedKFold` to keep class ratios and avoid bias
     - Define a `Pipeline` with the models from which parameters need to be found/optimized (see `Pipelines` below).
-    - Instantiate and fit `GridSearchCV` with the parameters to be optimized.
+    - Instantiate and fit `GridSearchCV` or `RandomSearchCV` with the parameters to be optimized.
         - Define correct parameter grid.
         - Define `cv = k`; `k`: how many different exclusive validation splits.
         - Define correct scoring; beware that not all scores are for multi-class; use one-versus-rest for mult-class, e.g., `roc_auc_ovr`.
@@ -756,7 +790,7 @@ Thus, among others, we should do the following:
   - More compact code.
   - Repetitive steps automated.
   - Code easier to understand and modify.
-  - We can apply `GridSearchCV` to the complete `Pipeline`, so we optimize transformer parameters, if necessary.
+  - We can apply `GridSearchCV` or `RandomSearchCV` to the complete `Pipeline`, so we optimize transformer parameters, if necessary.
   - We prevent data leakage, because the transformers in `GridSearchCV` are fit in each fold with a different subset, so the complete training data is not leaked.
 - More complex/hierarchical pipelines:
   - Use `ColumnTransformer` and `make_pipeline`:
@@ -812,8 +846,12 @@ Data processing and modeling guides for other **specific types of data**:
   - [`computer_vision_udacity/Catalog_CV_Functions.md`](https://github.com/mxagar/computer_vision_udacity/blob/main/Catalog_CV_Functions.md)
   - [`deep_learning_udacity/02_Pytorch_Guide`](https://github.com/mxagar/deep_learning_udacity/tree/main/02_Pytorch_Guide)
   - [`deep_learning_udacity/02_Keras_Guide`](https://github.com/mxagar/deep_learning_udacity/tree/main/02_Keras_Guide)
+  - [`detection_segmentation_pytorch`](https://github.com/mxagar/detection_segmentation_pytorch)
+- IOT data: [`datacamp_notes/Course_IoT`](https://github.com/mxagar/datacamp_notes/tree/main/Course_IoT)
+- NLP:
+  - [`nlp_guide`](https://github.com/mxagar/nlp_guide)
+  - [`text_sentiment`](https://github.com/mxagar/text_sentiment)
 <!--
-- IOT data
 - Time series
 - ECG
 -->
