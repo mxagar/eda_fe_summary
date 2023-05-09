@@ -26,6 +26,7 @@ dependencies:
   - pillow
   - scikit-image
   - tqdm
+  - posix
   - pip:
       - protobuf
       - chardet
