@@ -4,7 +4,7 @@ channels:
   - defaults
   - pytorch
 dependencies:
-  - python=3.8
+  - python=3.9
   - requests
   - pip
   - mlflow
@@ -18,7 +18,6 @@ dependencies:
   - pandas
   - pandas-datareader
   - matplotlib
-  - opencv
   - seaborn
   - cython
   - nltk
@@ -29,6 +28,14 @@ dependencies:
   - posix
   - pip:
       - protobuf
+      - opencv-python
+      - opencv-contrib-python
+      - onnx
+      - onnxruntime
+      - torch
+      - torchvision
+      - torchaudio
+      - tensorflow
       - chardet
       - hydra-joblib-launcher
       - wandb
