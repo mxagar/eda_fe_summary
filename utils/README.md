@@ -65,6 +65,11 @@ pip install -r requirements.txt
 # Track any changes and versions you have
 conda env export > conda_.yaml
 pip list --format=freeze > requirements.txt
+
+# Remove environment
+conda remove --name env-name --all
+# Update environment
+conda env update --file new.yml
 ```
 
 List of most important dependencies:
