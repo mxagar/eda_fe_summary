@@ -60,6 +60,7 @@ conda create --name env-name pip python=3.X
 conda install <package>
 
 # Install pip dependencies
+# use --user if there are permission issues
 pip install -r requirements.txt
 
 # Track any changes and versions you have
