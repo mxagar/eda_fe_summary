@@ -87,7 +87,7 @@ sns.set_style('white')
 df = pd.read_csv('data/dataset.csv')
 # If messy data, and columns might have many types, convert them to str: dtype=str
 # If first rows are info, not CSV: skiprows
-df = pd.read_csv('data/dataset.csv', dtype=str, , skiprows=4)
+df = pd.read_csv('data/dataset.csv', dtype=str, skiprows=4)
 # Other options:
 # parse_dates=['col_name']
 # index_col='col_name'
