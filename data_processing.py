@@ -1079,6 +1079,37 @@ fig.get_yaxis().set_visible(False)
 plt.savefig("./word_cloud.png", bbox_inches='tight')
 plt.show()
 
+### Plotly Express
+
+# pip install plotly-express
+import plotly.express as px
+
+# TSNE reduction
+tsne = TSNE(n_components=2,
+            verbose=1,
+            random_state=42)
+z = tsne.fit_transform(X)
+
+df_tsne = pd.DataFrame()
+df_tsne["y"] = df["label"]
+df_tsne["tsne-1"] = z[:,0]
+df_tsne["tsne-2"] = z[:,1]
+df_tsne["filename"] = df["filename"]
+
+# Scatterplot: underlying filename shown when hovering on points
+fig = px.scatter(df_tsne, x="tsne-1", y="tsne-2", color="y",
+                 hover_data=["filename"])
+fig.update_layout(
+    width=1000, height=1000,
+    title="Embedding vector T-SNE projection"
+)
+fig.show()
+
+# Save interactive plot as HTML
+# Points and their metadata saved in the HTML file! (so everything is there)
+fig.write_html("interactive_scatter_plot.html")
+
+
 ##### -- 
 ##### -- Feature Engineering
 ##### -- 

@@ -222,6 +222,7 @@ Finally, for more information on the motivation of the guide, see my [blog post]
     - `sns.pairplot()`: scatterplots/histograms of quantitative variables in a matrix; select variables if many.
     - `sns.FacetGrid()`: create a grid according to classes and map plot types and variables.
 - A word cloud can be a nice thing if we have a text field. Use `wordcloud` for that; see example.
+- For interactive visualizations: [Plotly / Plotly Express](https://plotly.com/); see section in code.
 
 ## Feature Engineering
 
