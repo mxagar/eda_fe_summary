@@ -51,6 +51,7 @@ Finally, for more information on the motivation of the guide, see my [blog post]
   - [Tips for Production](#tips-for-production)
     - [Pipelines](#pipelines)
   - [Other Type of Data and Interesting Links](#other-type-of-data-and-interesting-links)
+  - [To-Dos, Housekeeping](#to-dos-housekeeping)
   - [Authorship](#authorship)
 
 ## Data Ingestion/Loading and General, Important Functions
@@ -867,6 +868,11 @@ General links:
 - An example where I apply some of the techniques explained here: [airbnb_data_analysis](https://github.com/mxagar/airbnb_data_analysis).
 - A Template Package to Transform Machine Learning Research Notebooks into *Production-Level* Code and Its Application to Predicting Customer Churn:  [customer_churn_production](https://github.com/mxagar/customer_churn_production).
 - My guide on SQL: [sql_guide](https://github.com/mxagar/sql_guide).
+
+## To-Dos, Housekeeping
+
+- [ ] Add/improve section on hyperparameter tuning: [hyperparameter-optimization](https://github.com/mxagar/hyperparameter-optimization)
+- [ ] Add section on [probability calibration](https://scikit-learn.org/stable/modules/calibration.html)
 
 ## Authorship
 
