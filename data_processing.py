@@ -94,6 +94,10 @@ df = pd.read_csv('data/dataset.csv', dtype=str, skiprows=4)
 # names=column_names
 # na_values='?'
 
+# If tehre is a vectors/embedding column, we need to convert it
+import ast
+df['embedding'] = df['embedding'].apply(ast.literal_eval)
+
 # Writing CSV
 df.to_csv('data/dataset.csv', sep=',', header=True, index=False)
 # Printing
